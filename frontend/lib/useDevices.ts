@@ -29,6 +29,7 @@ export function useDevices() {
   const [language, setLanguageState] = useState<string>("en");
   useEffect(() => setLanguageState(cachedLanguage()), []);
   const [title, setTitle] = useState<string>(""); // "" = default title
+  const [uiLoaded, setUiLoaded] = useState(false); // the server has sent language/title
   const [weatherVersion, setWeatherVersion] = useState(0); // bumps when weather settings change
   const [calendarVersion, setCalendarVersion] = useState(0); // bumps when calendars change
   const retry = useRef(0);
@@ -75,7 +76,10 @@ export function useDevices() {
         }
         if (ev.type === "ui") {
           if (ev.ui?.language) setLanguage(ev.ui.language);
-          if (ev.ui) setTitle(ev.ui.title ?? "");
+          if (ev.ui) {
+            setTitle(ev.ui.title ?? "");
+            setUiLoaded(true);
+          }
           return;
         }
         setDevices((prev) => applyEvent(prev, ev));
@@ -122,6 +126,7 @@ export function useDevices() {
     setLanguage,
     title,
     setTitle,
+    uiLoaded,
     weatherVersion,
     calendarVersion,
     devices: Object.values(devices),

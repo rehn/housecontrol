@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { LiveProvider } from "@/lib/live";
 import { themeScript } from "@/lib/theme";
+import { titleScript } from "@/lib/title";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -23,6 +24,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        <script dangerouslySetInnerHTML={{ __html: titleScript }} />
       </head>
       <body>
         <LiveProvider>{children}</LiveProvider>
