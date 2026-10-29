@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"housecontrol/internal/auth"
+	"housecontrol/internal/devices"
 )
 
 func newAuthEnv(t *testing.T) *testEnv {
@@ -65,8 +66,6 @@ func TestViewingNeedsNoLogin(t *testing.T) {
 func TestChangesAndSettingsNeedLogin(t *testing.T) {
 	e := newAuthEnv(t)
 	for _, c := range []struct{ method, path, body string }{
-		{"POST", "/api/devices/lamp/set", `{"state":"ON"}`},
-		{"POST", "/api/devices/set-many", `{"ids":["a"],"payload":{"state":"ON"}}`},
 		{"PUT", "/api/dashboard", `{}`},
 		{"PUT", "/api/settings/ui", `{"title":"x"}`},
 		{"GET", "/api/settings/mqtt", ``},
@@ -85,9 +84,6 @@ func TestChangesAndSettingsNeedLogin(t *testing.T) {
 		if code != 401 || v["code"] != "unauthorized" {
 			t.Errorf("%s %s: %d %v", c.method, c.path, code, v)
 		}
-	}
-	if len(e.mq.sentCommands()) != 0 {
-		t.Fatal("nothing may be switched without login")
 	}
 }
 
@@ -205,5 +201,24 @@ func TestWithoutProxyForwardedForIsIgnored(t *testing.T) {
 	}
 	if code := wrongLogin(t, e.srv.URL, "10.0.0.2"); code != 429 {
 		t.Fatalf("a made-up X-Forwarded-For must not get around the limit: %d", code)
+	}
+}
+
+func TestDevicesCanBeControlledWithoutLogin(t *testing.T) {
+	e := newAuthEnv(t)
+	e.reg.SetDevices([]devices.Device{
+		{ID: "0x01", Name: "kitchen/1", Kind: devices.KindLight},
+		{ID: "0x02", Name: "kitchen/2", Kind: devices.KindLight},
+	})
+	e.mq.connected = true
+
+	if code, v := do(t, "POST", e.srv.URL+"/api/devices/0x01/set", `{"state":"ON","brightness":120}`); code != 202 {
+		t.Fatalf("switching a lamp needs no login: %d %v", code, v)
+	}
+	if code, v := do(t, "POST", e.srv.URL+"/api/devices/set-many", `{"ids":["0x01","0x02"],"payload":{"state":"OFF"}}`); code != 202 {
+		t.Fatalf("switching a group needs no login: %d %v", code, v)
+	}
+	if n := len(e.mq.sentCommands()); n != 3 {
+		t.Fatalf("sent %d commands", n)
 	}
 }

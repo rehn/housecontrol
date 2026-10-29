@@ -199,7 +199,7 @@
   },
   "auth": {
     "title": "Log in",
-    "hint": "Log in to switch devices, edit the home page and change settings.",
+    "hint": "Log in to edit the home page and change settings.",
     "username": "User name",
     "password": "Password",
     "login": "Log in",

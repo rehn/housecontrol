@@ -49,9 +49,9 @@ time zones (incl. Outlook's Windows names) are handled by `internal/calendar`.
 
 ### Login
 
-Anyone who opens the app can *look*: the home page, lamp states, weather and
-calendar. Switching devices, editing the home page and all settings need the
-admin login. Set the password with `ADMIN_PASSWORD` (and optionally
+Anyone who opens the app can use it: see the home page, weather and calendar,
+and switch lights, outlets and groups (also brightness). Editing the home page
+and all settings need the admin login. Set the password with `ADMIN_PASSWORD` (and optionally
 `ADMIN_USERNAME`, default `admin`), or under `auth:` in `config.yaml`:
 
 ```sh

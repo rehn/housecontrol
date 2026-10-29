@@ -1,6 +1,6 @@
 "use client";
 
-// The admin login. Anyone may look; switching devices, editing the home page
+// The admin login. Anyone may look and switch lights/outlets; editing the home page
 // and settings need a login when the server has a password (ADMIN_PASSWORD).
 
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
@@ -11,7 +11,7 @@ export interface Auth {
   required: boolean;
   loggedIn: boolean;
   username?: string;
-  /** may switch devices, edit and see settings */
+  /** may edit the home page and see settings */
   canEdit: boolean;
   login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;

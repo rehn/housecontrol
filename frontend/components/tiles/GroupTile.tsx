@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Device, setMany } from "@/lib/api";
-import { useAuth } from "@/lib/auth";
 import { errorText, useI18n } from "@/lib/i18n";
 import { Card, groupSummary } from "@/lib/dashboard";
 import { BulbIcon, BulbOffIcon } from "@/components/icons";
@@ -19,7 +18,6 @@ export function GroupTile({
   preview,
 }: TileActions & { card: Card; devices: Record<string, Device>; preview?: boolean }) {
   const { t } = useI18n();
-  const { canEdit } = useAuth(); // without a login the tile only shows the state
   const [panelOpen, setPanelOpen] = useState(false);
   const title = card.title || t("tile.group");
   const s = groupSummary(devices, card.deviceIds ?? []);
@@ -52,12 +50,12 @@ export function GroupTile({
         subtitle={subtitle}
         on={s.anyOn}
         tone="group"
-        onLongPress={!canEdit || preview || s.known === 0 ? undefined : () => setPanelOpen(true)}
+        onLongPress={preview || s.known === 0 ? undefined : () => setPanelOpen(true)}
       >
         <BigToggle
           on={s.anyOn}
           label={title}
-          disabled={!canEdit || preview || s.known === 0}
+          disabled={preview || s.known === 0}
           onToggle={toggle}
           onIcon={<BulbIcon />}
           offIcon={<BulbOffIcon />}

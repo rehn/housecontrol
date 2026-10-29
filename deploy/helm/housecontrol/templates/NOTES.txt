@@ -16,8 +16,8 @@ Try it with a port-forward:
 
 {{- if not (or .Values.auth.password .Values.auth.existingSecret) }}
 
-WARNING: no admin password is set, so anyone who can open the page can switch
-devices and change settings. Set auth.existingSecret (or auth.password).
+WARNING: no admin password is set, so anyone who can open the page can edit
+the home page and change settings. Set auth.existingSecret (or auth.password).
 {{- end }}
 {{- if not .Values.persistence.enabled }}
 

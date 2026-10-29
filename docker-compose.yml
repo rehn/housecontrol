@@ -10,7 +10,7 @@ services:
     environment:
       LOG_LEVEL: info
       TZ: Europe/Stockholm # decides what "today" is in the weather forecast
-      # Login for switching devices, editing and settings (viewing stays open).
+      # Login for editing the home page and settings (switching lights stays open).
       # Put ADMIN_PASSWORD=... in a .env file next to this file.
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}

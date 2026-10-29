@@ -156,7 +156,7 @@ describe("LoginForm", () => {
 });
 
 describe("tiles without login", () => {
-  const readOnly: Auth = { ready: true, required: true, loggedIn: false, canEdit: false, login: vi.fn(), logout: vi.fn() };
+  const loggedOut: Auth = { ready: true, required: true, loggedIn: false, canEdit: false, login: vi.fn(), logout: vi.fn() };
   const lamp: Device = {
     id: "lamp",
     name: "Taklampa",
@@ -167,24 +167,25 @@ describe("tiles without login", () => {
   } as unknown as Device;
   const card = { id: "c1", type: "device" as const, deviceId: "lamp" };
 
-  it("show the state but can't be switched or opened", () => {
+  it("can still be switched and opened (controlling needs no login)", () => {
     const onPatch = vi.fn();
+    vi.stubGlobal("fetch", vi.fn(() => Promise.resolve(new Response("{}", { status: 202 }))));
     render(
-      <AuthContext.Provider value={readOnly}>
+      <AuthContext.Provider value={loggedOut}>
         <DeviceTile card={card} device={lamp} onPatch={onPatch} onError={vi.fn()} />
       </AuthContext.Provider>,
     );
     const toggle = screen.getByRole("button", { name: "Turn Taklampa off" }) as HTMLButtonElement;
-    expect(toggle.getAttribute("aria-pressed")).toBe("true"); // still shows that it is on
-    expect(toggle.disabled).toBe(true);
-    fireEvent.contextMenu(toggle.closest(".tile")!); // right-click = long press
-    expect(screen.queryByRole("dialog")).toBeNull();
-    expect(onPatch).not.toHaveBeenCalled();
+    expect(toggle.disabled).toBe(false);
+    fireEvent.click(toggle);
+    expect(onPatch).toHaveBeenCalledWith("lamp", { state: "OFF" });
+    fireEvent.contextMenu(toggle.closest(".tile")!); // right-click = long press: brightness panel
+    expect(screen.getByRole("dialog")).toBeTruthy();
   });
 
   it("group tiles too", () => {
     render(
-      <AuthContext.Provider value={readOnly}>
+      <AuthContext.Provider value={loggedOut}>
         <GroupTile
           card={{ id: "g", type: "group", title: "Kök", deviceIds: ["lamp"] }}
           devices={{ lamp }}
@@ -193,15 +194,7 @@ describe("tiles without login", () => {
         />
       </AuthContext.Provider>,
     );
-    expect((screen.getByRole("button", { name: "Turn Kök off" }) as HTMLButtonElement).disabled).toBe(true);
-  });
-
-  it("work as before when logged in (or no login is needed)", () => {
-    const onPatch = vi.fn();
-    render(<DeviceTile card={card} device={lamp} onPatch={onPatch} onError={vi.fn()} />);
-    vi.stubGlobal("fetch", vi.fn(() => Promise.resolve(new Response("{}"))));
-    fireEvent.click(screen.getByRole("button", { name: "Turn Taklampa off" }));
-    expect(onPatch).toHaveBeenCalledWith("lamp", { state: "OFF" });
+    expect((screen.getByRole("button", { name: "Turn Kök off" }) as HTMLButtonElement).disabled).toBe(false);
   });
 });
 

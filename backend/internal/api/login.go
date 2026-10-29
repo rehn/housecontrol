@@ -10,8 +10,8 @@ import (
 
 const sessionCookie = "hc_session"
 
-// requireLogin lets anyone look (the dashboard, device states, weather,
-// calendar), but switching devices, editing and all settings need a login.
+// requireLogin lets anyone look and switch devices (lights, outlets, groups,
+// brightness), but editing the home page and all settings need a login.
 func (s *Server) requireLogin(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if s.opts.Auth.Enabled() && needsLogin(r) && !s.loggedIn(r) {
@@ -26,6 +26,9 @@ func needsLogin(r *http.Request) bool {
 	p := r.URL.Path
 	if !strings.HasPrefix(p, "/api/") || strings.HasPrefix(p, "/api/auth") {
 		return false // the web app itself, and logging in
+	}
+	if r.Method == http.MethodPost && strings.HasPrefix(p, "/api/devices/") {
+		return false // controlling devices is for everyone in the house
 	}
 	switch r.Method {
 	case http.MethodGet, http.MethodHead:

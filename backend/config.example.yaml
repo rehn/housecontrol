@@ -13,8 +13,8 @@ mqtt:
   password: ""
   clientId: housecontrol
   baseTopic: zigbee2mqtt
-# Login for changing things (switching devices, editing, settings).
-# Without a password everything is open. Viewing never needs a login.
+# Login for editing the home page and settings. Viewing and switching
+# lights/outlets never need a login. Without a password everything is open.
 # Prefer the ADMIN_PASSWORD env var over writing the password here.
 auth:
   username: admin

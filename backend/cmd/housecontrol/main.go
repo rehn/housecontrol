@@ -63,7 +63,7 @@ func main() {
 	// Admin login: viewing is open, changing things needs ADMIN_PASSWORD.
 	var login *auth.Auth
 	if cfg.Auth.Password == "" {
-		log.Warn("no ADMIN_PASSWORD set: anyone on the network can change settings and switch devices")
+		log.Warn("no ADMIN_PASSWORD set: anyone on the network can edit the home page and change settings")
 	} else if secret, err := auth.LoadOrCreateSecret(cfg.DataDir); err != nil {
 		log.Error("cannot store the login key, refusing to start", "err", err)
 		os.Exit(1)

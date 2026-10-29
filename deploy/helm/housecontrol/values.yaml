@@ -15,7 +15,7 @@ fullnameOverride: ""
 timezone: Europe/Stockholm
 logLevel: info
 
-# Admin login for switching devices, editing and settings (viewing stays open).
+# Admin login for editing the home page and settings (viewing and switching lights stay open).
 # No password = login switched off. Prefer existingSecret over a password here:
 #   kubectl create secret generic housecontrol-login --from-literal=ADMIN_PASSWORD='...'
 auth:

@@ -199,7 +199,7 @@
   },
   "auth": {
     "title": "Logga in",
-    "hint": "Logga in för att styra enheter, redigera startsidan och ändra inställningar.",
+    "hint": "Logga in för att redigera startsidan och ändra inställningar.",
     "username": "Användarnamn",
     "password": "Lösenord",
     "login": "Logga in",

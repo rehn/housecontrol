@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Device, setDevice } from "@/lib/api";
-import { useAuth } from "@/lib/auth";
 import { errorText, useI18n } from "@/lib/i18n";
 import type { Card } from "@/lib/dashboard";
 import { BulbIcon, BulbOffIcon, PlugIcon } from "@/components/icons";
@@ -22,7 +21,6 @@ export function DeviceTile({
   preview,
 }: TileActions & { card: Card; device: Device; preview?: boolean }) {
   const { t } = useI18n();
-  const { canEdit } = useAuth(); // without a login the tile only shows the state
   const [panelOpen, setPanelOpen] = useState(false);
   const caps = device.capabilities;
   const name = card.title || device.name;
@@ -63,13 +61,13 @@ export function DeviceTile({
         on={isOn}
         tone={tone}
         dimmed={offline}
-        onLongPress={!canEdit || preview ? undefined : () => setPanelOpen(true)}
+        onLongPress={preview ? undefined : () => setPanelOpen(true)}
       >
         {caps.onOff && (
           <BigToggle
             on={isOn}
             label={name}
-            disabled={!canEdit || offline || preview}
+            disabled={offline || preview}
             onToggle={toggle}
             onIcon={isSwitch ? <PlugIcon /> : <BulbIcon />}
             offIcon={<BulbOffIcon />}
