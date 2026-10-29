@@ -76,7 +76,7 @@ needed), already pointing at the matching Docker Hub image:
 kubectl create namespace housecontrol
 kubectl -n housecontrol create secret generic housecontrol-login --from-literal=ADMIN_PASSWORD='something long'
 
-helm install housecontrol oci://ghcr.io/<github-user>/charts/housecontrol --version 0.1.0 \
+helm install housecontrol oci://ghcr.io/rehn/charts/housecontrol --version 0.1.0 \
   -n housecontrol \
   --set auth.existingSecret=housecontrol-login \
   --set mqtt.url=tcp://192.168.1.201:1883 \
@@ -85,8 +85,8 @@ helm install housecontrol oci://ghcr.io/<github-user>/charts/housecontrol --vers
   --set 'httpRoute.parentRefs[0].namespace=<gateway-namespace>' \
   --set 'httpRoute.hostnames[0]=housecontrol.example.lan'
 
-helm upgrade housecontrol oci://ghcr.io/<github-user>/charts/housecontrol --version 0.2.0 -n housecontrol --reuse-values
-helm show values oci://ghcr.io/<github-user>/charts/housecontrol   # all options
+helm upgrade housecontrol oci://ghcr.io/rehn/charts/housecontrol --version 0.2.0 -n housecontrol --reuse-values
+helm show values oci://ghcr.io/rehn/charts/housecontrol   # all options
 ```
 
 From the source tree instead: `helm install housecontrol deploy/helm/housecontrol …`
@@ -109,7 +109,7 @@ pushes `<user>/housecontrol:main`; a version tag builds the release:
 ```sh
 git tag v0.1.0 && git push origin v0.1.0
 # -> docker.io/<user>/housecontrol:0.1.0, :0.1 and :latest (amd64 + arm64)
-# -> oci://ghcr.io/<github-user>/charts/housecontrol:0.1.0 (the Helm chart)
+# -> oci://ghcr.io/rehn/charts/housecontrol:0.1.0 (the Helm chart)
 # -> GitHub release v0.1.0 with housecontrol-0.1.0.tgz
 ```
 
