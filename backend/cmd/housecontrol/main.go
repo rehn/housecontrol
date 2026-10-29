@@ -18,6 +18,7 @@ import (
 	"housecontrol/internal/config"
 	"housecontrol/internal/devices"
 	"housecontrol/internal/mqttclient"
+	"housecontrol/internal/schedule"
 	"housecontrol/internal/settings"
 	"housecontrol/internal/weather"
 )
@@ -94,6 +95,18 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
+	// Schedules: switch lights at set times / sunrise / sunset (checked every 15 s).
+	runner := schedule.NewRunner(func() ([]schedule.Schedule, schedule.Place) {
+		list, err := store.LoadSchedules()
+		if err != nil {
+			log.Error("read schedules", "err", err)
+		}
+		w, _ := store.LoadWeather()
+		p, _ := settings.SchedulePlace(w, time.Local)
+		return list, p
+	}, mq, registryTargets{reg}, log)
+	go runner.Run(ctx)
+
 	go func() {
 		log.Info("http listening", "addr", cfg.HTTP.Addr, "staticDir", staticDir, "dataDir", cfg.DataDir)
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
@@ -121,4 +134,20 @@ func logLevel() slog.Level {
 		return slog.LevelDebug
 	}
 	return slog.LevelInfo
+}
+
+// registryTargets lets the schedule runner look devices up in the registry.
+type registryTargets struct{ reg *devices.Registry }
+
+func (r registryTargets) Target(id string) (schedule.Target, bool) {
+	d, ok := r.reg.Get(id)
+	if !ok {
+		return schedule.Target{}, false
+	}
+	return schedule.Target{
+		Name:          d.Name,
+		StateProperty: d.Capabilities.StateProperty,
+		Brightness:    d.Capabilities.Brightness,
+		BrightnessMax: d.Capabilities.BrightnessMax,
+	}, true
 }

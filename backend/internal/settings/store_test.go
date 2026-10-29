@@ -6,6 +6,7 @@ import (
 
 	"housecontrol/internal/config"
 	"housecontrol/internal/dashboard"
+	"housecontrol/internal/schedule"
 )
 
 func TestRoundTrip(t *testing.T) {
@@ -104,5 +105,25 @@ func TestCalendarsRoundTrip(t *testing.T) {
 	}
 	if u, _ := s.LoadUI(); u == nil || u.Language != "sv" {
 		t.Fatal("saving calendars lost other settings")
+	}
+}
+
+func TestSchedulesRoundTrip(t *testing.T) {
+	s := NewStore(t.TempDir())
+	if l, err := s.LoadSchedules(); err != nil || len(l) != 0 {
+		t.Fatalf("%v %v", l, err)
+	}
+	s.SaveUI(UI{Language: "sv"})
+	want := []schedule.Schedule{{ID: "s1", Name: "Ute", Enabled: true, DeviceIDs: []string{"0x01"},
+		On: &schedule.Trigger{Kind: schedule.KindSunset, Offset: -30}, Brightness: 40}}
+	if err := s.SaveSchedules(want); err != nil {
+		t.Fatal(err)
+	}
+	got, _ := s.LoadSchedules()
+	if len(got) != 1 || got[0].Name != "Ute" || got[0].On.Offset != -30 || got[0].Brightness != 40 {
+		t.Fatalf("%+v", got)
+	}
+	if u, _ := s.LoadUI(); u == nil || u.Language != "sv" {
+		t.Fatal("saving schedules lost other settings")
 	}
 }

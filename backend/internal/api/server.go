@@ -31,6 +31,7 @@ import (
 	"housecontrol/internal/dashboard"
 	"housecontrol/internal/devices"
 	"housecontrol/internal/mqttclient"
+	"housecontrol/internal/schedule"
 	"housecontrol/internal/settings"
 	"housecontrol/internal/weather"
 )
@@ -55,6 +56,8 @@ type SettingsStore interface {
 	SaveWeather(settings.Weather) error
 	LoadCalendars() ([]settings.Calendar, error)
 	SaveCalendars([]settings.Calendar) error
+	LoadSchedules() ([]schedule.Schedule, error)
+	SaveSchedules([]schedule.Schedule) error
 }
 
 // CalendarService downloads iCal calendars (calendar.Service).
@@ -125,6 +128,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("PUT /api/settings/calendars", s.putCalendars)
 	mux.HandleFunc("POST /api/settings/calendars/test", s.testCalendar)
 	mux.HandleFunc("GET /api/calendar", s.getCalendar)
+	mux.HandleFunc("GET /api/settings/schedules", s.getSchedules)
+	mux.HandleFunc("PUT /api/settings/schedules", s.putSchedules)
 	mux.HandleFunc("GET /api/dashboard", s.getDashboard)
 	mux.HandleFunc("PUT /api/dashboard", s.putDashboard)
 	mux.HandleFunc("GET /api/settings/mqtt", s.getMQTTSettings)

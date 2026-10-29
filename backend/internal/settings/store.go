@@ -8,9 +8,11 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"housecontrol/internal/config"
 	"housecontrol/internal/dashboard"
+	"housecontrol/internal/schedule"
 )
 
 type Store struct {
@@ -24,6 +26,7 @@ type file struct {
 	UI        *UI                  `json:"ui,omitempty"`
 	Weather   *Weather             `json:"weather,omitempty"`
 	Calendars []Calendar           `json:"calendars,omitempty"`
+	Schedules []schedule.Schedule  `json:"schedules,omitempty"`
 }
 
 // Calendar is one iCal link shown on calendar cards. The URL often contains
@@ -44,6 +47,22 @@ type Weather struct {
 	// Area is looked up from the coordinates when the place is saved,
 	// e.g. "Enköping, Uppsala län" (in the app language at that time).
 	Area string `json:"area"`
+}
+
+// SchedulePlace is where schedules compute sunrise/sunset: the place saved
+// for the weather cards, in time zone loc. Known is false (sun triggers never
+// fire) until a place is saved. Also returns the place's display name.
+func SchedulePlace(w *Weather, loc *time.Location) (schedule.Place, string) {
+	p := schedule.Place{Loc: loc}
+	if w == nil || (w.Latitude == 0 && w.Longitude == 0) {
+		return p, ""
+	}
+	p.Lat, p.Lon, p.Known = w.Latitude, w.Longitude, true
+	name := w.Location
+	if name == "" {
+		name = w.Area
+	}
+	return p, name
 }
 
 // UI holds app-wide display settings.
@@ -170,6 +189,27 @@ func (s *Store) SaveCalendars(c []Calendar) error {
 		return err
 	}
 	f.Calendars = c
+	return s.write(f)
+}
+
+func (s *Store) LoadSchedules() ([]schedule.Schedule, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	f, err := s.read()
+	if err != nil {
+		return nil, err
+	}
+	return f.Schedules, nil
+}
+
+func (s *Store) SaveSchedules(l []schedule.Schedule) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	f, err := s.read()
+	if err != nil {
+		return err
+	}
+	f.Schedules = l
 	return s.write(f)
 }
 

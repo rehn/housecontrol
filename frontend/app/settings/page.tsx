@@ -5,6 +5,8 @@ import { FormEvent, useEffect, useState } from "react";
 import {
   getMqttSettings,
   getCalendarSettings,
+  getSchedules,
+  saveSchedules,
   getWeatherSettings,
   locateByIP,
   lookupArea,
@@ -27,6 +29,8 @@ import { CalendarForm } from "@/components/settings/CalendarForm";
 import { LoginForm } from "@/components/LoginForm";
 import { ThemePicker } from "@/components/settings/ThemePicker";
 import { SettingsLayout } from "@/components/settings/SettingsLayout";
+import { ScheduleForm } from "@/components/settings/ScheduleForm";
+import type { SchedulesView } from "@/lib/schedules";
 import { useAuth } from "@/lib/auth";
 import { findMyPosition } from "@/lib/position";
 import { useLive } from "@/lib/live";
@@ -71,6 +75,7 @@ export default function SettingsPage() {
             { id: "language", label: t("settings.language"), content: <LanguageSection /> },
             { id: "weather", label: t("settings.weather"), content: <WeatherSection /> },
             { id: "calendars", label: t("settings.calendars"), content: <CalendarSection /> },
+            { id: "schedules", label: t("schedules.title"), content: <SchedulesSection /> },
             { id: "mqtt", label: t("settings.mqttBroker"), content: <MqttSection liveStatus={mqtt} /> },
             { id: "account", label: t("auth.account"), content: <AccountSection /> },
           ]}
@@ -188,6 +193,35 @@ function CalendarSection() {
         </div>
       )}
       {calendars && <CalendarForm initial={calendars} onSave={saveCalendarSettings} test={testCalendarLink} />}
+    </>
+  );
+}
+
+function SchedulesSection() {
+  const { t } = useI18n();
+  const { devices } = useLive();
+  const [view, setView] = useState<SchedulesView | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = () => {
+    setError(null);
+    getSchedules()
+      .then(setView)
+      .catch((e) => setError(t("settings.loadFailed", { error: errorText(t, e) })));
+  };
+  useEffect(load, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return (
+    <>
+      {error && (
+        <div className="banner bad">
+          <span>{error}</span>
+          <button type="button" className="btn" onClick={load}>
+            {t("common.retry")}
+          </button>
+        </div>
+      )}
+      {view && <ScheduleForm initial={view} devices={devices} onSave={saveSchedules} />}
     </>
   );
 }

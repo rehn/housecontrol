@@ -2,3 +2,4 @@ verify.log
 .env
 .DS_Store
 dist/
+Claude outputs/

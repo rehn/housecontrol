@@ -1,4 +1,5 @@
 import type { Dashboard } from "./dashboard";
+import type { Schedule, SchedulesView } from "./schedules";
 
 export type Kind = "light" | "switch" | "other";
 
@@ -200,6 +201,10 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   }
   return data as T;
 }
+
+export const getSchedules = () => request<SchedulesView>("GET", "/api/settings/schedules");
+export const saveSchedules = (schedules: Schedule[]) =>
+  request<SchedulesView>("PUT", "/api/settings/schedules", { schedules });
 
 /** Login state as the server sees it. `required` is false when no password is set. */
 export interface AuthStatus {

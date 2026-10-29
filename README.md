@@ -17,6 +17,10 @@ reached, the UI says so and you set the broker under **Settings**. Settings
 saved there are stored in `<dataDir>/settings.json` and reconnect immediately,
 without a restart.
 
+**Using the app** (home page, cards, tabs, Grafana, schedules, settings) is
+described in the [user guide](docs/USER_GUIDE.md). This README covers
+installing, configuring and running it.
+
 ## Run with Docker
 
 ```sh
@@ -46,6 +50,16 @@ Calendar cards show iCal links added under **Settings → Calendars** (Google
 Calendar's "secret address in iCal format", iCloud, Outlook, club schedules…).
 Recurring events, exceptions, moved/cancelled occurrences, all-day events and
 time zones (incl. Outlook's Windows names) are handled by `internal/calendar`.
+
+### Schedules
+
+**Settings → Schedules** turns chosen lights/outlets on and/or off at a clock
+time or at sunrise/sunset (± minutes, optionally "not before"/"not after" a
+time), on chosen weekdays, optionally at a set brightness. The backend runs
+them (checked every 15 s), so no screen needs to be open. Sunrise and sunset
+are computed locally for the place chosen under **Settings → Weather**, in the
+server's time zone (`TZ`). Events missed while the app was down are skipped,
+not run late.
 
 ### Tabs and Grafana
 
@@ -186,6 +200,7 @@ or `ws(s)://…`. A missing scheme or port is filled in automatically.
 | `GET /api/devices` | devices with capabilities + state |
 | `POST /api/devices/{ieee}/set` | `{"state":"ON"}`, `{"brightness":120}`, `{"color_temp":370}`, `transition`, `color` |
 | `GET /api/dashboard`, `PUT …` | tabs (`kind` `cards` with columns of cards, or `grafana` with a `url`); older single-page layouts are served as one `home` tab |
+| `GET /api/settings/schedules`, `PUT …` | schedules + today's sunrise/sunset + each schedule's next run |
 | `GET /api/settings/mqtt` | current broker settings + status (never returns the password) |
 | `PUT /api/settings/mqtt` | save + reconnect. `password` omitted = keep, `""` = remove |
 | `POST /api/settings/mqtt/test` | try a connection without changing anything |
