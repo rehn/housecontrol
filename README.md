@@ -69,20 +69,28 @@ The chart is in `deploy/helm/housecontrol`. It runs one pod (settings are files
 on a small volume that survives `helm uninstall`), and can attach to a
 Gateway API Gateway with an `HTTPRoute`.
 
+Each release is published as an OCI chart on ghcr.io (no `helm repo add`
+needed), already pointing at the matching Docker Hub image:
+
 ```sh
 kubectl create namespace housecontrol
 kubectl -n housecontrol create secret generic housecontrol-login --from-literal=ADMIN_PASSWORD='something long'
 
-helm install housecontrol deploy/helm/housecontrol -n housecontrol \
-  --set image.repository=docker.io/<your-dockerhub-user>/housecontrol \
-  --set image.tag=0.1.0 \
+helm install housecontrol oci://ghcr.io/<github-user>/charts/housecontrol --version 0.1.0 \
+  -n housecontrol \
   --set auth.existingSecret=housecontrol-login \
   --set mqtt.url=tcp://192.168.1.201:1883 \
   --set httpRoute.enabled=true \
   --set 'httpRoute.parentRefs[0].name=<your-gateway>' \
   --set 'httpRoute.parentRefs[0].namespace=<gateway-namespace>' \
   --set 'httpRoute.hostnames[0]=housecontrol.example.lan'
+
+helm upgrade housecontrol oci://ghcr.io/<github-user>/charts/housecontrol --version 0.2.0 -n housecontrol --reuse-values
+helm show values oci://ghcr.io/<github-user>/charts/housecontrol   # all options
 ```
+
+From the source tree instead: `helm install housecontrol deploy/helm/housecontrol …`
+plus `--set image.repository=docker.io/<dockerhub-user>/housecontrol --set image.tag=0.1.0`.
 
 Or put the same in a `my-values.yaml` and use `-f my-values.yaml`; every
 option is described in `values.yaml`. With the HTTPRoute on, the app takes the
@@ -101,12 +109,15 @@ pushes `<user>/housecontrol:main`; a version tag builds the release:
 ```sh
 git tag v0.1.0 && git push origin v0.1.0
 # -> docker.io/<user>/housecontrol:0.1.0, :0.1 and :latest (amd64 + arm64)
-# -> GitHub release v0.1.0 with housecontrol-0.1.0.tgz (the Helm chart)
+# -> oci://ghcr.io/<github-user>/charts/housecontrol:0.1.0 (the Helm chart)
+# -> GitHub release v0.1.0 with housecontrol-0.1.0.tgz
 ```
 
 One-time setup in the GitHub repo under Settings → Secrets and variables →
 Actions: variable `DOCKERHUB_USERNAME`, secret `DOCKERHUB_TOKEN` (a Docker Hub
-access token with Read & Write).
+access token with Read & Write). The chart package on ghcr.io starts out
+private: make it public once under your GitHub profile → Packages →
+charts/housecontrol → Package settings → Change visibility.
 
 ## Develop (macOS)
 

@@ -1,6 +1,7 @@
 # Tests on every push and pull request. On main and on version tags (v1.2.3)
 # it also builds the image for amd64 + arm64 and pushes it to Docker Hub;
-# a version tag also attaches the packaged Helm chart to a GitHub release.
+# a version tag also pushes the Helm chart to oci://ghcr.io/<owner>/charts and
+# attaches it to a GitHub release.
 #
 # Set up once in the GitHub repo (Settings → Secrets and variables → Actions):
 #   variable DOCKERHUB_USERNAME  your Docker Hub user, e.g. lars
@@ -105,16 +106,28 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: write   # GitHub release
+      packages: write   # push the chart to ghcr.io
     steps:
       - uses: actions/checkout@v4
       - uses: azure/setup-helm@v4
         with:
           version: v3.19.0
       - name: package the chart with the tag's version
+        env:
+          IMAGE_REPO: docker.io/${{ vars.DOCKERHUB_USERNAME }}/housecontrol
         run: |
           v="${GITHUB_REF_NAME#v}"
+          # the released chart points at the released image, so no --set image.repository is needed
+          sed -i "s|^  repository: \"\"|  repository: $IMAGE_REPO|" deploy/helm/housecontrol/values.yaml
+          grep -q "repository: $IMAGE_REPO" deploy/helm/housecontrol/values.yaml
           helm package deploy/helm/housecontrol --version "$v" --app-version "$v" -d dist
+      - name: push the chart to ghcr.io (OCI)
+        run: |
+          owner="${GITHUB_REPOSITORY_OWNER,,}"   # registry paths must be lower case
+          echo "${{ github.token }}" | helm registry login ghcr.io -u "${{ github.actor }}" --password-stdin
+          helm push dist/housecontrol-*.tgz "oci://ghcr.io/$owner/charts"
+          echo "helm install housecontrol oci://ghcr.io/$owner/charts/housecontrol --version ${GITHUB_REF_NAME#v}" >> "$GITHUB_STEP_SUMMARY"
       - name: GitHub release with the chart attached
         env:
           GH_TOKEN: ${{ github.token }}
