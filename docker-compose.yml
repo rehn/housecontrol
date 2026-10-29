@@ -1,0 +1,25 @@
+# docker compose up --build   ->   http://localhost:8080
+services:
+  housecontrol:
+    build: .
+    image: housecontrol:local
+    ports:
+      - "8080:8080"
+    volumes:
+      - housecontrol-data:/data # settings saved from the UI survive restarts
+    environment:
+      LOG_LEVEL: info
+      TZ: Europe/Stockholm # decides what "today" is in the weather forecast
+      # Login for switching devices, editing and settings (viewing stays open).
+      # Put ADMIN_PASSWORD=... in a .env file next to this file.
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      # Optional: preset the broker instead of entering it in the UI.
+      # Settings saved in the UI take precedence over these.
+      # MQTT_URL: tcp://192.168.1.201:1883
+      # MQTT_USERNAME: ""
+      # MQTT_PASSWORD: ""
+    restart: unless-stopped
+
+volumes:
+  housecontrol-data:

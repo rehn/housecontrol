@@ -1,0 +1,157 @@
+suite: deployment
+templates:
+  - deployment.yaml
+set:
+  image.repository: docker.io/lars/housecontrol
+tests:
+  - it: needs the image repository
+    set:
+      image.repository: ""
+    asserts:
+      - failedTemplate:
+          errorPattern: "image.repository"
+
+  - it: uses the chart's appVersion as tag by default
+    chart:
+      appVersion: 1.2.3
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: docker.io/lars/housecontrol:1.2.3
+
+  - it: can pin a tag
+    set:
+      image.tag: main
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: docker.io/lars/housecontrol:main
+
+  - it: runs one pod and replaces it (settings live in one volume)
+    asserts:
+      - equal: { path: spec.replicas, value: 1 }
+      - equal: { path: spec.strategy.type, value: Recreate }
+
+  - it: is locked down
+    asserts:
+      - equal: { path: spec.template.spec.securityContext.runAsNonRoot, value: true }
+      - equal: { path: spec.template.spec.securityContext.fsGroup, value: 65532 }
+      - equal: { path: "spec.template.spec.containers[0].securityContext.readOnlyRootFilesystem", value: true }
+      - equal: { path: "spec.template.spec.containers[0].securityContext.allowPrivilegeEscalation", value: false }
+      - contains:
+          path: spec.template.spec.containers[0].securityContext.capabilities.drop
+          content: ALL
+      - equal: { path: spec.template.spec.automountServiceAccountToken, value: false }
+
+  - it: checks health on /healthz and /readyz
+    asserts:
+      - equal: { path: "spec.template.spec.containers[0].livenessProbe.httpGet.path", value: /healthz }
+      - equal: { path: "spec.template.spec.containers[0].readinessProbe.httpGet.path", value: /readyz }
+      - equal: { path: "spec.template.spec.containers[0].ports[0].containerPort", value: 8080 }
+
+  - it: keeps settings on the volume
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content: { name: data, mountPath: /data }
+      - equal:
+          path: spec.template.spec.volumes[0].persistentVolumeClaim.claimName
+          value: RELEASE-NAME-housecontrol
+
+  - it: can use an existing volume claim, or none
+    set:
+      persistence.existingClaim: my-data
+    asserts:
+      - equal: { path: "spec.template.spec.volumes[0].persistentVolumeClaim.claimName", value: my-data }
+
+  - it: uses a scratch volume when persistence is off
+    set:
+      persistence.enabled: false
+    asserts:
+      - isNotNull: { path: "spec.template.spec.volumes[0].emptyDir" }
+
+  - it: sets time zone and log level
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content: { name: TZ, value: Europe/Stockholm }
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content: { name: LOG_LEVEL, value: info }
+
+  - it: reads the admin password from the chart's Secret
+    set:
+      auth.password: hemligt
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ADMIN_PASSWORD
+            valueFrom:
+              secretKeyRef: { name: RELEASE-NAME-housecontrol, key: ADMIN_PASSWORD }
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content: { name: ADMIN_USERNAME, value: admin }
+
+  - it: reads the admin password from an existing Secret
+    set:
+      auth.existingSecret: housecontrol-login
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: ADMIN_PASSWORD
+            valueFrom:
+              secretKeyRef: { name: housecontrol-login, key: ADMIN_PASSWORD }
+
+  - it: has no password env when login is off
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content: { name: ADMIN_PASSWORD }
+          any: true
+
+  - it: passes the MQTT defaults
+    set:
+      mqtt.url: tcp://192.168.1.201:1883
+      mqtt.password: mqttpw
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content: { name: MQTT_URL, value: tcp://192.168.1.201:1883 }
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: MQTT_PASSWORD
+            valueFrom:
+              secretKeyRef: { name: RELEASE-NAME-housecontrol, key: MQTT_PASSWORD }
+
+  - it: trusts the proxy when exposed through a Gateway
+    set:
+      httpRoute.enabled: true
+      httpRoute.parentRefs: [{ name: gw }]
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content: { name: TRUST_PROXY, value: "true" }
+
+  - it: does not trust X-Forwarded-For without a proxy
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content: { name: TRUST_PROXY, value: "false" }
+
+  - it: restarts the pod when the Secret changes
+    set:
+      auth.password: a
+    asserts:
+      - isNotNull: { path: "spec.template.metadata.annotations[\"checksum/secret\"]" }
+
+  - it: passes extra env
+    set:
+      env:
+        MQTT_CLIENT_ID: housecontrol-k8s
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content: { name: MQTT_CLIENT_ID, value: housecontrol-k8s }

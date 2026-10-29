@@ -1,0 +1,12 @@
+**/.git
+**/.DS_Store
+frontend/node_modules
+frontend/.next
+frontend/out
+backend/data
+backend/config.yaml
+backend/housecontrol
+deploy
+frontend/.next-dev
+.env
+.github

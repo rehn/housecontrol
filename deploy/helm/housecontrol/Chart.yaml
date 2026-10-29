@@ -1,0 +1,9 @@
+apiVersion: v2
+name: housecontrol
+description: Slim home control for Zigbee lights and outlets via zigbee2mqtt (Go backend + Next.js UI in one image)
+type: application
+# The chart version follows the app; the release workflow sets both from the git tag.
+version: 0.1.0
+appVersion: "0.1.0"
+keywords: [zigbee2mqtt, mqtt, home-automation]
+home: https://github.com/

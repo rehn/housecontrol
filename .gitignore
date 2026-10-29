@@ -1,0 +1,4 @@
+verify.log
+.env
+.DS_Store
+dist/

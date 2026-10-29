@@ -1,0 +1,103 @@
+# housecontrol: one pod, settings saved from the UI live on a small volume.
+
+image:
+  # Required, e.g. docker.io/<your-dockerhub-user>/housecontrol
+  repository: ""
+  # Defaults to the chart's appVersion
+  tag: ""
+  pullPolicy: IfNotPresent
+imagePullSecrets: []
+
+nameOverride: ""
+fullnameOverride: ""
+
+# Decides what "today" is for the weather and calendar cards.
+timezone: Europe/Stockholm
+logLevel: info
+
+# Admin login for switching devices, editing and settings (viewing stays open).
+# No password = login switched off. Prefer existingSecret over a password here:
+#   kubectl create secret generic housecontrol-login --from-literal=ADMIN_PASSWORD='...'
+auth:
+  username: admin
+  password: ""
+  existingSecret: ""
+  existingSecretKey: ADMIN_PASSWORD
+
+# MQTT defaults. Settings saved in the UI (Settings → MQTT) take precedence.
+mqtt:
+  url: ""            # e.g. tcp://192.168.1.201:1883
+  username: ""
+  password: ""
+  existingSecret: ""
+  existingSecretKey: MQTT_PASSWORD
+  baseTopic: zigbee2mqtt
+
+# Extra environment variables, e.g. { MQTT_CLIENT_ID: housecontrol-k8s }
+env: {}
+
+# Take the client address from X-Forwarded-For (needed behind a Gateway so a
+# wrong-password lockout hits only the guessing device). Empty = on when
+# httpRoute is enabled.
+trustProxy: ""
+
+persistence:
+  enabled: true
+  existingClaim: ""
+  storageClass: ""
+  accessModes: [ReadWriteOnce]
+  size: 1Gi
+  # keep: the volume (and your settings) survives `helm uninstall`
+  annotations:
+    helm.sh/resource-policy: keep
+
+service:
+  type: ClusterIP    # or LoadBalancer / NodePort
+  port: 80
+  loadBalancerIP: ""
+  nodePort: ""
+  annotations: {}
+
+# Gateway API (gateway.networking.k8s.io/v1)
+httpRoute:
+  enabled: false
+  annotations: {}
+  # Required when enabled, e.g.
+  #   - name: home-gateway
+  #     namespace: gateway
+  #     sectionName: https
+  parentRefs: []
+  hostnames: []      # e.g. [housecontrol.hemma.lan]
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+podAnnotations: {}
+podLabels: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65532
+  runAsGroup: 65532
+  fsGroup: 65532
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: [ALL]
+
+resources:
+  requests:
+    cpu: 10m
+    memory: 32Mi
+  limits:
+    memory: 128Mi
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

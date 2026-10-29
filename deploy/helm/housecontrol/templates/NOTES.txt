@@ -1,0 +1,25 @@
+housecontrol {{ .Values.image.tag | default .Chart.AppVersion }} is installed.
+
+{{- if .Values.httpRoute.enabled }}
+Open it at:
+{{- range .Values.httpRoute.hostnames }}
+  https://{{ . }}/   (or http://, depending on your Gateway listener)
+{{- end }}
+{{- else if eq .Values.service.type "LoadBalancer" }}
+Open it at the service's external IP:
+  kubectl -n {{ .Release.Namespace }} get svc {{ include "housecontrol.fullname" . }}
+{{- else }}
+Try it with a port-forward:
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "housecontrol.fullname" . }} 8080:{{ .Values.service.port }}
+  open http://localhost:8080
+{{- end }}
+
+{{- if not (or .Values.auth.password .Values.auth.existingSecret) }}
+
+WARNING: no admin password is set, so anyone who can open the page can switch
+devices and change settings. Set auth.existingSecret (or auth.password).
+{{- end }}
+{{- if not .Values.persistence.enabled }}
+
+WARNING: persistence is off; settings saved in the UI are lost when the pod restarts.
+{{- end }}

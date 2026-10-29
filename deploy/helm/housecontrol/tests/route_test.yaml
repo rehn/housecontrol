@@ -1,0 +1,56 @@
+suite: service and HTTPRoute
+templates:
+  - service.yaml
+  - httproute.yaml
+set:
+  image.repository: docker.io/lars/housecontrol
+tests:
+  - it: has a ClusterIP service on port 80 to the app's 8080
+    template: service.yaml
+    asserts:
+      - equal: { path: spec.type, value: ClusterIP }
+      - equal: { path: "spec.ports[0].port", value: 80 }
+      - equal: { path: "spec.ports[0].targetPort", value: http }
+
+  - it: can be a LoadBalancer with a fixed IP
+    template: service.yaml
+    set:
+      service.type: LoadBalancer
+      service.loadBalancerIP: 192.168.1.240
+    asserts:
+      - equal: { path: spec.type, value: LoadBalancer }
+      - equal: { path: spec.loadBalancerIP, value: 192.168.1.240 }
+
+  - it: makes no HTTPRoute by default
+    template: httproute.yaml
+    asserts:
+      - hasDocuments: { count: 0 }
+
+  - it: attaches to the Gateway with host names
+    template: httproute.yaml
+    set:
+      httpRoute.enabled: true
+      httpRoute.parentRefs:
+        - name: home-gateway
+          namespace: gateway
+          sectionName: https
+      httpRoute.hostnames: [housecontrol.hemma.lan]
+    asserts:
+      - isKind: { of: HTTPRoute }
+      - isAPIVersion: { of: gateway.networking.k8s.io/v1 }
+      - equal:
+          path: spec.parentRefs[0]
+          value: { name: home-gateway, namespace: gateway, sectionName: https }
+      - equal: { path: "spec.hostnames[0]", value: housecontrol.hemma.lan }
+      - equal:
+          path: spec.rules[0].backendRefs[0]
+          value: { name: RELEASE-NAME-housecontrol, port: 80 }
+      - equal: { path: "spec.rules[0].matches[0].path", value: { type: PathPrefix, value: / } }
+
+  - it: needs a Gateway to attach to
+    template: httproute.yaml
+    set:
+      httpRoute.enabled: true
+    asserts:
+      - failedTemplate:
+          errorPattern: "httpRoute.parentRefs"

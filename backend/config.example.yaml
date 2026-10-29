@@ -1,0 +1,27 @@
+# Optional. Copy to config.yaml (or point CONFIG_FILE at it).
+# Every value can also be set with an env var, which overrides the file:
+#   MQTT_URL, MQTT_USERNAME, MQTT_PASSWORD, MQTT_CLIENT_ID, Z2M_BASE_TOPIC,
+#   HTTP_ADDR, DATA_DIR, CORS_ORIGINS (comma separated), LOG_LEVEL=debug,
+#   ADMIN_USERNAME, ADMIN_PASSWORD
+#
+# The MQTT values are only defaults: once you save MQTT settings in the web UI
+# (Settings), they are stored in <dataDir>/settings.json and take precedence.
+# The app also starts fine with no broker configured at all.
+mqtt:
+  url: tcp://192.168.1.201:1883   # Mosquitto on the Raspberry Pi
+  username: ""
+  password: ""
+  clientId: housecontrol
+  baseTopic: zigbee2mqtt
+# Login for changing things (switching devices, editing, settings).
+# Without a password everything is open. Viewing never needs a login.
+# Prefer the ADMIN_PASSWORD env var over writing the password here.
+auth:
+  username: admin
+  password: ""
+http:
+  addr: ":8080"
+  # Needed only when the frontend runs on another origin (next dev).
+  corsOrigins:
+    - http://localhost:3000
+dataDir: data
