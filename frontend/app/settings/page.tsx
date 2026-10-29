@@ -25,6 +25,7 @@ import { TitleForm } from "@/components/settings/TitleForm";
 import { WeatherForm } from "@/components/settings/WeatherForm";
 import { CalendarForm } from "@/components/settings/CalendarForm";
 import { LoginForm } from "@/components/LoginForm";
+import { ThemePicker } from "@/components/settings/ThemePicker";
 import { useAuth } from "@/lib/auth";
 import { findMyPosition } from "@/lib/position";
 import { useLive } from "@/lib/live";
@@ -66,6 +67,7 @@ export default function SettingsPage() {
           <AccountSection />
           <GeneralSection />
           <LanguageSection />
+          <AppearanceSection />
           <WeatherSection />
           <CalendarSection />
           <MqttSection liveStatus={mqtt} />
@@ -187,6 +189,17 @@ function CalendarSection() {
         </div>
       )}
       {calendars && <CalendarForm initial={calendars} onSave={saveCalendarSettings} test={testCalendarLink} />}
+    </section>
+  );
+}
+
+function AppearanceSection() {
+  const { t } = useI18n();
+  return (
+    <section className="panel">
+      <h2>{t("settings.appearance")}</h2>
+      <p className="meta">{t("settings.appearanceHint")}</p>
+      <ThemePicker />
     </section>
   );
 }

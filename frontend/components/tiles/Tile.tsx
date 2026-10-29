@@ -56,8 +56,10 @@ export function BigToggle(props: {
       disabled={props.disabled}
       onClick={props.onToggle}
     >
-      <span className="seg seg-off">{props.offIcon}</span>
-      <span className="seg seg-on">{props.onIcon}</span>
+      <span className="big-toggle-inner">
+        <span className="seg seg-off">{props.offIcon}</span>
+        <span className="seg seg-on">{props.onIcon}</span>
+      </span>
     </button>
   );
 }

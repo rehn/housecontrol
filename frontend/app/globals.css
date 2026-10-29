@@ -11,17 +11,12 @@
   --warn: #b7791f;
   --info: #3b6fb6;
 }
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #141413;
-    --card: #1e1e1c;
-    --text: #ecece8;
-    --muted: #9a9a93;
-    --border: #2e2e2b;
-    --accent: #f2b733;
-    --accent-soft: #2e2716;
-  }
-}
+/* Dark colours: chosen in Settings → Appearance (data-theme="dark"), or
+   "Automatic" (no data-theme) on a device set to dark. See the end of the
+   dashboard variables below for the shared dark block. */
+:root { color-scheme: light dark; }
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; }
 
 * { box-sizing: border-box; }
 body {
@@ -146,10 +141,24 @@ form { display: flex; flex-direction: column; gap: 12px; }
   --track: rgba(127, 127, 120, 0.18);
 }
 @media (prefers-color-scheme: dark) {
-  :root { --toggle-off: #9a9a95; --track: rgba(255, 255, 255, 0.07); }
+  :root:not([data-theme="light"]) {
+    --bg: #141413; --card: #1e1e1c; --text: #ecece8; --muted: #a3a39c; --border: #2e2e2b;
+    --accent: #f2b733; --accent-soft: #2e2716;
+    --toggle-off: #8f8f8a; --track: rgba(255, 255, 255, 0.08);
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141413; --card: #1e1e1c; --text: #ecece8; --muted: #a3a39c; --border: #2e2e2b;
+  --accent: #f2b733; --accent-soft: #2e2716;
+  --toggle-off: #8f8f8a; --track: rgba(255, 255, 255, 0.08);
 }
 
-html { -webkit-tap-highlight-color: transparent; }
+html {
+  -webkit-tap-highlight-color: transparent;
+  /* Android Chrome enlarges text in wide boxes ("font boosting"); keep sizes as designed */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
 button { touch-action: manipulation; }
 main.wide { max-width: 1400px; }
 
@@ -197,13 +206,23 @@ main.wide { max-width: 1400px; }
 .tile-title { font-weight: 600; font-size: 1.05rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tile-subtitle { color: var(--muted); font-size: 0.85rem; }
 
-/* two-segment toggle: one big button */
+/* two-segment toggle: one big button. The segments sit in an inner span with
+   display:flex because some Android browsers / WebViews (kiosk apps) don't lay
+   out a <button> itself as grid or flex, which broke the height. */
 .big-toggle {
-  display: grid; grid-template-columns: 1fr 1fr;
-  width: 100%; height: 60px; padding: 0; border: none; border-radius: 14px;
-  background: var(--track); cursor: pointer; overflow: hidden; color: inherit;
+  display: block; position: relative;
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: 60px; min-height: 60px; margin: 0; padding: 0;
+  border: 0; border-radius: 14px; overflow: hidden;
+  background: var(--track); color: inherit; font: inherit; line-height: 1;
+  cursor: pointer;
 }
-.big-toggle .seg { display: grid; place-items: center; border-radius: 14px; transition: background 0.15s, color 0.15s; }
+.big-toggle-inner { display: flex; width: 100%; height: 100%; }
+.big-toggle .seg {
+  flex: 1 1 0; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 14px; transition: background 0.15s, color 0.15s;
+}
 .big-toggle.off .seg-off { background: var(--toggle-off); color: #2b2b28; }
 .big-toggle.off .seg-on { color: var(--muted); }
 .big-toggle.on .seg-off { color: var(--muted); }
@@ -335,7 +354,10 @@ nav .navlink { display: inline-flex; align-items: center; cursor: pointer; font:
 .inline-link { color: var(--accent); font-weight: 600; }
 .weather-now { display: flex; align-items: center; gap: 14px; }
 .weather-now-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
-.weather-condition { font-size: 1.5rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.weather-condition {
+  font-size: clamp(1.15rem, 1.9vw, 1.5rem); font-weight: 600; line-height: 1.2;
+  overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+}
 .weather-now-temp { display: flex; flex-direction: column; align-items: flex-end; text-align: right; }
 .weather-temp { font-size: 1.6rem; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .weather-days { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; text-align: center; }
@@ -377,10 +399,11 @@ nav .navlink { display: inline-flex; align-items: center; cursor: pointer; font:
 .cal-day-head span:first-child::first-letter { text-transform: uppercase; }
 .cal-events { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
 .cal-event { display: grid; grid-template-columns: 7.5em 12px 1fr; align-items: center; gap: 12px; font-size: 0.98rem; }
+.cal-event .cal-dot { align-self: center; }
 .cal-time { color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .cal-dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; flex: none; }
 .cal-dot.big { width: 16px; height: 16px; margin-top: 16px; }
-.cal-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cal-title { overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-height: 1.25; }
 .calendar-errors { margin: 4px 0 10px; font-size: 0.8rem; }
 
 /* calendar settings */
