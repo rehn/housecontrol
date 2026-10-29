@@ -201,6 +201,8 @@ or `ws(s)://…`. A missing scheme or port is filled in automatically.
 | `POST /api/devices/{ieee}/set` | `{"state":"ON"}`, `{"brightness":120}`, `{"color_temp":370}`, `transition`, `color` |
 | `GET /api/dashboard`, `PUT …` | tabs (`kind` `cards` with columns of cards, or `grafana` with a `url`); older single-page layouts are served as one `home` tab |
 | `GET /api/settings/schedules`, `PUT …` | schedules + today's sunrise/sunset + each schedule's next run |
+| `POST /api/settings/backup` | `{"protect":true,"password"}` → all settings as a gzip-compressed, AES-256-GCM encrypted `.hcbackup` file (key: PBKDF2-SHA256, 600 000 rounds); `{"protect":false}` → readable `.json` |
+| `POST /api/settings/restore` | `{"password","data":<base64 file>}` (password only for `.hcbackup`) → validates everything, then replaces and applies the settings |
 | `GET /api/settings/mqtt` | current broker settings + status (never returns the password) |
 | `PUT /api/settings/mqtt` | save + reconnect. `password` omitted = keep, `""` = remove |
 | `POST /api/settings/mqtt/test` | try a connection without changing anything |

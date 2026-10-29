@@ -211,7 +211,29 @@
     "stateConnected": "Connected",
     "stateConnecting": "Connecting…",
     "stateError": "Connection failed",
-    "stateUnconfigured": "Not configured"
+    "stateUnconfigured": "Not configured",
+    "backup": "Backup",
+    "backupExport": "Save a backup",
+    "backupExportHint": "Everything you have set up: the home page and tabs, schedules, calendars (with their secret links), weather, language, title and the MQTT settings including the password. With a password, the file is compressed and encrypted – keep the password safe, it can't be recovered.",
+    "backupPassword": "Password",
+    "backupPasswordRepeat": "Repeat password",
+    "backupPasswordShort": "At least {min} characters.",
+    "backupPasswordMismatch": "The passwords don't match.",
+    "backupDownload": "Download backup",
+    "backupEncrypting": "Encrypting…",
+    "backupDownloaded": "Saved as {file}. Keep the password safe – it can't be recovered.",
+    "backupImport": "Restore a backup",
+    "backupImportHint": "Replaces all settings on this server with those in the backup and applies them at once. The admin password is not part of backups.",
+    "backupFile": "Backup file",
+    "backupRestore": "Restore",
+    "backupRestoreConfirm": "Tap again to replace all settings",
+    "backupRestoring": "Restoring…",
+    "backupRestored": "Restored the backup from {date}. Reloading…",
+    "backupFailed": "Didn't work: {error}",
+    "backupProtect": "Protect with a password (recommended)",
+    "backupPlainWarning": "Without a password the file is plain JSON, readable by anyone who gets it – including the MQTT password and your calendars' secret links. Handy for looking inside; keep it somewhere safe.",
+    "backupDownloadedPlain": "Saved as {file} (not protected).",
+    "backupPasswordIfProtected": "(only for protected files)"
   },
   "auth": {
     "title": "Log in",
@@ -315,6 +337,11 @@
     "calendar_not_configured": "No calendars are set up",
     "unauthorized": "Log in to do this.",
     "bad_login": "Wrong user name or password.",
-    "too_many_attempts": "Too many wrong attempts. Wait a few minutes and try again."
+    "too_many_attempts": "Too many wrong attempts. Wait a few minutes and try again.",
+    "backup_wrong_password": "Wrong password, or the file is damaged.",
+    "backup_not_backup": "This is not a housecontrol backup file.",
+    "backup_invalid": "The backup contains settings that can't be used.",
+    "backup_weak_password": "The password must be at least 8 characters.",
+    "backup_needs_password": "This backup is protected with a password – enter it."
   }
 }

@@ -80,6 +80,7 @@ func main() {
 		Handler: api.New(reg, mq, store, log, api.Options{
 			CORSOrigins: cfg.HTTP.CORSOrigins,
 			TrustProxy:  cfg.HTTP.TrustProxy,
+			Version:     version,
 			StaticDir:   staticDir,
 			Weather: weather.NewService(
 				weather.DefaultProviders(),

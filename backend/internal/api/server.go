@@ -58,6 +58,8 @@ type SettingsStore interface {
 	SaveCalendars([]settings.Calendar) error
 	LoadSchedules() ([]schedule.Schedule, error)
 	SaveSchedules([]schedule.Schedule) error
+	Snapshot() (settings.Snapshot, error)
+	Restore(settings.Snapshot) error
 }
 
 // CalendarService downloads iCal calendars (calendar.Service).
@@ -84,6 +86,7 @@ type Options struct {
 	// client is the last address in X-Forwarded-For (else every request would
 	// seem to come from the proxy). Never set it when clients connect directly.
 	TrustProxy bool
+	Version    string // shown in backups
 }
 
 type Server struct {
@@ -128,6 +131,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("PUT /api/settings/calendars", s.putCalendars)
 	mux.HandleFunc("POST /api/settings/calendars/test", s.testCalendar)
 	mux.HandleFunc("GET /api/calendar", s.getCalendar)
+	mux.HandleFunc("POST /api/settings/backup", s.exportBackup)
+	mux.HandleFunc("POST /api/settings/restore", s.restoreBackup)
 	mux.HandleFunc("GET /api/settings/schedules", s.getSchedules)
 	mux.HandleFunc("PUT /api/settings/schedules", s.putSchedules)
 	mux.HandleFunc("GET /api/dashboard", s.getDashboard)
@@ -910,6 +915,11 @@ const (
 	codeUnauthorized          = "unauthorized"
 	codeBadLogin              = "bad_login"
 	codeTooManyAttempts       = "too_many_attempts"
+	codeBackupWeakPassword    = "backup_weak_password"
+	codeBackupWrongPassword   = "backup_wrong_password"
+	codeBackupNotBackup       = "backup_not_backup"
+	codeBackupInvalid         = "backup_invalid"
+	codeBackupNeedsPassword   = "backup_needs_password"
 )
 
 func writeErrCode(w http.ResponseWriter, status int, code, msg string) {

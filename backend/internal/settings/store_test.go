@@ -127,3 +127,29 @@ func TestSchedulesRoundTrip(t *testing.T) {
 		t.Fatal("saving schedules lost other settings")
 	}
 }
+
+func TestSnapshotAndRestore(t *testing.T) {
+	src := NewStore(t.TempDir())
+	src.SaveUI(UI{Language: "sv", Title: "Hemma"})
+	src.SaveMQTT(config.MQTT{URL: "tcp://pi:1883", Password: "hemligt"})
+	src.SaveCalendars([]Calendar{{ID: "c1", Name: "Familjen", URL: "https://x/secret.ics", Color: "#f5c242"}})
+	snap, err := src.Snapshot()
+	if err != nil || snap.UI.Title != "Hemma" || snap.MQTT.Password != "hemligt" || len(snap.Calendars) != 1 {
+		t.Fatalf("%v %+v", err, snap)
+	}
+
+	dst := NewStore(t.TempDir())
+	dst.SaveWeather(Weather{Provider: "smhi", Latitude: 1, Longitude: 2}) // replaced, not merged
+	if err := dst.Restore(snap); err != nil {
+		t.Fatal(err)
+	}
+	if u, _ := dst.LoadUI(); u == nil || u.Title != "Hemma" {
+		t.Fatalf("%+v", u)
+	}
+	if w, _ := dst.LoadWeather(); w != nil {
+		t.Fatalf("restore replaces everything: %+v", w)
+	}
+	if fi, err := os.Stat(dst.Path()); err != nil || fi.Mode().Perm() != 0o600 {
+		t.Fatalf("restored file must stay private: %v %v", err, fi.Mode())
+	}
+}

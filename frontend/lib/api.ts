@@ -208,6 +208,39 @@ export const getSchedules = () => request<SchedulesView>("GET", "/api/settings/s
 export const saveSchedules = (schedules: Schedule[]) =>
   request<SchedulesView>("PUT", "/api/settings/schedules", { schedules });
 
+/**
+ * All settings as a file (Settings → Backup): compressed and encrypted with
+ * `password`, or readable JSON when `password` is null.
+ */
+export async function downloadBackup(password: string | null): Promise<{ blob: Blob; filename: string }> {
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}/api/settings/backup`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(password === null ? { protect: false } : { protect: true, password }),
+    });
+  } catch {
+    throw new ApiError("cannot reach the housecontrol backend", "backend_unreachable");
+  }
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    if (res.status === 401 && typeof window !== "undefined") window.dispatchEvent(new Event(UNAUTHORIZED_EVENT));
+    throw new ApiError(data.error ?? `request failed (${res.status})`, data.code, res.status);
+  }
+  const name = /filename="([^"]+)"/.exec(res.headers.get("Content-Disposition") ?? "")?.[1] ?? "housecontrol-backup.hcbackup";
+  return { blob: await res.blob(), filename: name };
+}
+
+/** Replace all settings with a backup file. */
+export async function restoreBackup(file: Blob, password: string): Promise<{ exported?: string }> {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  let bin = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return request("POST", "/api/settings/restore", { password, data: btoa(bin) });
+}
+
 /** Login state as the server sees it. `required` is false when no password is set. */
 export interface AuthStatus {
   required: boolean;

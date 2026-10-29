@@ -213,6 +213,23 @@ func (s *Store) SaveSchedules(l []schedule.Schedule) error {
 	return s.write(f)
 }
 
+// Snapshot is everything saved from the UI (what a backup contains).
+type Snapshot = file
+
+// Snapshot returns all saved settings.
+func (s *Store) Snapshot() (Snapshot, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.read()
+}
+
+// Restore replaces all saved settings with snap (validate it first).
+func (s *Store) Restore(snap Snapshot) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.write(snap)
+}
+
 func (s *Store) read() (file, error) {
 	var f file
 	b, err := os.ReadFile(s.path)

@@ -7,6 +7,8 @@ import {
   getCalendarSettings,
   getSchedules,
   saveSchedules,
+  downloadBackup,
+  restoreBackup,
   getWeatherSettings,
   locateByIP,
   lookupArea,
@@ -30,6 +32,7 @@ import { LoginForm } from "@/components/LoginForm";
 import { ThemePicker } from "@/components/settings/ThemePicker";
 import { SettingsLayout } from "@/components/settings/SettingsLayout";
 import { ScheduleForm } from "@/components/settings/ScheduleForm";
+import { BackupForm } from "@/components/settings/BackupForm";
 import type { SchedulesView } from "@/lib/schedules";
 import { useAuth } from "@/lib/auth";
 import { findMyPosition } from "@/lib/position";
@@ -77,6 +80,11 @@ export default function SettingsPage() {
             { id: "calendars", label: t("settings.calendars"), content: <CalendarSection /> },
             { id: "schedules", label: t("schedules.title"), content: <SchedulesSection /> },
             { id: "mqtt", label: t("settings.mqttBroker"), content: <MqttSection liveStatus={mqtt} /> },
+            {
+              id: "backup",
+              label: t("settings.backup"),
+              content: <BackupForm download={downloadBackup} restore={restoreBackup} onRestored={() => window.location.reload()} />,
+            },
             { id: "account", label: t("auth.account"), content: <AccountSection /> },
           ]}
         />

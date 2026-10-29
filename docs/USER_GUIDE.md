@@ -19,7 +19,7 @@ uses the English names of buttons and menus.
 - [Tabs](#tabs)
 - [Grafana](#grafana)
 - [Schedules](#schedules)
-- [Settings](#settings)
+- [Settings](#settings) (including [Backup](#backup))
 - [New lights from zigbee2mqtt](#new-lights-from-zigbee2mqtt)
 - [Tips for a wall tablet](#tips-for-a-wall-tablet)
 - [Troubleshooting](#troubleshooting)
@@ -266,6 +266,28 @@ Where zigbee2mqtt's MQTT broker is, e.g. `192.168.1.201` or
 - **Save & connect** saves and reconnects.
 - The password field shows "(unchanged)" – leave it to keep the saved password.
 - **zigbee2mqtt base topic** is usually `zigbee2mqtt`.
+
+### Backup
+**Save a backup** downloads everything you have set up – home page and tabs,
+schedules, calendars, weather, language, title and the MQTT settings – as one
+file.
+
+- **Protect with a password** (recommended, on by default): choose a password
+  (at least 8 characters, typed twice). The file
+  (`housecontrol-backup-<date>.hcbackup`) is compressed and **encrypted** with
+  it. Keep the password safe; it can't be recovered.
+- Without a password you get a readable `housecontrol-backup-<date>.json` –
+  handy for looking inside, but anyone who gets it can read the MQTT password
+  and your calendars' secret links. Keep it somewhere safe.
+
+**Restore a backup** – choose the file (`.hcbackup` or `.json`), enter its
+password if it is protected, and tap **Restore**, then once more to confirm.
+All settings are replaced with the backup's and used at once, and the page
+reloads. If the password is wrong or the file isn't a valid backup, nothing is
+changed. The admin password is not part of backups.
+
+Good moments for a backup: before upgrading, before moving the app to another
+server, and after setting up something you'd hate to redo.
 
 ### Account
 Who is logged in, and **Log out**.

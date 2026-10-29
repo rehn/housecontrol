@@ -211,7 +211,29 @@
     "stateConnected": "Ansluten",
     "stateConnecting": "Ansluter…",
     "stateError": "Anslutningen misslyckades",
-    "stateUnconfigured": "Inte konfigurerad"
+    "stateUnconfigured": "Inte konfigurerad",
+    "backup": "Säkerhetskopia",
+    "backupExport": "Spara en säkerhetskopia",
+    "backupExportHint": "Allt du har ställt in: startsidan och flikarna, scheman, kalendrar (med deras hemliga länkar), väder, språk, titel och MQTT-inställningarna inklusive lösenordet. Med lösenord komprimeras och krypteras filen – spara lösenordet väl, det går inte att återskapa.",
+    "backupPassword": "Lösenord",
+    "backupPasswordRepeat": "Upprepa lösenordet",
+    "backupPasswordShort": "Minst {min} tecken.",
+    "backupPasswordMismatch": "Lösenorden är inte lika.",
+    "backupDownload": "Ladda ner säkerhetskopia",
+    "backupEncrypting": "Krypterar…",
+    "backupDownloaded": "Sparad som {file}. Spara lösenordet väl – det går inte att återskapa.",
+    "backupImport": "Återställ en säkerhetskopia",
+    "backupImportHint": "Ersätter alla inställningar på servern med dem i säkerhetskopian och använder dem direkt. Admin-lösenordet ingår inte i säkerhetskopior.",
+    "backupFile": "Fil med säkerhetskopia",
+    "backupRestore": "Återställ",
+    "backupRestoreConfirm": "Tryck igen för att ersätta alla inställningar",
+    "backupRestoring": "Återställer…",
+    "backupRestored": "Säkerhetskopian från {date} är återställd. Laddar om…",
+    "backupFailed": "Det gick inte: {error}",
+    "backupProtect": "Skydda med lösenord (rekommenderas)",
+    "backupPlainWarning": "Utan lösenord blir filen vanlig JSON som alla som får tag i den kan läsa – även MQTT-lösenordet och kalendrarnas hemliga länkar. Praktiskt om du vill titta i den; förvara den säkert.",
+    "backupDownloadedPlain": "Sparad som {file} (inte skyddad).",
+    "backupPasswordIfProtected": "(bara för skyddade filer)"
   },
   "auth": {
     "title": "Logga in",
@@ -315,6 +337,11 @@
     "calendar_not_configured": "Inga kalendrar är inställda",
     "unauthorized": "Logga in för att göra det här.",
     "bad_login": "Fel användarnamn eller lösenord.",
-    "too_many_attempts": "För många felaktiga försök. Vänta några minuter och försök igen."
+    "too_many_attempts": "För många felaktiga försök. Vänta några minuter och försök igen.",
+    "backup_wrong_password": "Fel lösenord, eller så är filen skadad.",
+    "backup_not_backup": "Det här är ingen säkerhetskopia från housecontrol.",
+    "backup_invalid": "Säkerhetskopian innehåller inställningar som inte går att använda.",
+    "backup_weak_password": "Lösenordet måste ha minst 8 tecken.",
+    "backup_needs_password": "Säkerhetskopian är skyddad med lösenord – skriv in det."
   }
 }
