@@ -226,9 +226,14 @@ has these sections:
 Leave it empty for the default.
 
 ### Appearance
-**Light**, **Dark** or **Automatic** (follows the device's own setting). This
-applies **only to the device you choose it on**, so the kitchen tablet can be
-dark while the computer is light.
+Both choices apply **only to the device you make them on**, so the kitchen
+tablet can look different from the computer.
+
+- **Light**, **Dark** or **Automatic** (follows the device's own setting).
+- **Card size** for the light and group cards: **Normal**, **Compact** (lower
+  switch and less space) or **Mini** (icon, name and a smaller switch on one
+  row – fits many lights on one screen). Clock, weather, calendar and Grafana
+  cards keep their size.
 
 ### Language
 English or Swedish for every text the app shows, on **all screens**. Names you

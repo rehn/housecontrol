@@ -233,7 +233,13 @@
     "backupProtect": "Protect with a password (recommended)",
     "backupPlainWarning": "Without a password the file is plain JSON, readable by anyone who gets it – including the MQTT password and your calendars' secret links. Handy for looking inside; keep it somewhere safe.",
     "backupDownloadedPlain": "Saved as {file} (not protected).",
-    "backupPasswordIfProtected": "(only for protected files)"
+    "backupPasswordIfProtected": "(only for protected files)",
+    "cardSize": "Card size",
+    "cardSizeHint": "Height of the light and group cards on this device. Mini puts the icon, name and switch on one row.",
+    "cardSizeNormal": "Normal",
+    "cardSizeCompact": "Compact",
+    "cardSizeMini": "Mini",
+    "theme": "Light or dark"
   },
   "auth": {
     "title": "Log in",

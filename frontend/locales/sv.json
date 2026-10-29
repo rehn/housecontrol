@@ -233,7 +233,13 @@
     "backupProtect": "Skydda med lösenord (rekommenderas)",
     "backupPlainWarning": "Utan lösenord blir filen vanlig JSON som alla som får tag i den kan läsa – även MQTT-lösenordet och kalendrarnas hemliga länkar. Praktiskt om du vill titta i den; förvara den säkert.",
     "backupDownloadedPlain": "Sparad som {file} (inte skyddad).",
-    "backupPasswordIfProtected": "(bara för skyddade filer)"
+    "backupPasswordIfProtected": "(bara för skyddade filer)",
+    "cardSize": "Kortstorlek",
+    "cardSizeHint": "Höjden på lamp- och gruppkorten på den här enheten. Mini lägger ikon, namn och knapp på en rad.",
+    "cardSizeNormal": "Normal",
+    "cardSizeCompact": "Kompakt",
+    "cardSizeMini": "Mini",
+    "theme": "Ljust eller mörkt"
   },
   "auth": {
     "title": "Logga in",

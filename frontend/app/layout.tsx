@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { LiveProvider } from "@/lib/live";
 import { themeScript } from "@/lib/theme";
 import { titleScript } from "@/lib/title";
+import { cardSizeScript } from "@/lib/cardSize";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -25,6 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
         <script dangerouslySetInnerHTML={{ __html: titleScript }} />
+        <script dangerouslySetInnerHTML={{ __html: cardSizeScript }} />
       </head>
       <body>
         <LiveProvider>{children}</LiveProvider>

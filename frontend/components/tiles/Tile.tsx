@@ -21,7 +21,7 @@ export function Tile(props: {
   const tone = props.tone ?? "light";
   const press = useLongPress(props.onLongPress);
   return (
-    <div className={`tile tone-${tone} ${props.on ? "on" : ""} ${props.dimmed ? "dimmed" : ""}`} {...press}>
+    <div className={`tile switch-tile tone-${tone} ${props.on ? "on" : ""} ${props.dimmed ? "dimmed" : ""}`} {...press}>
       <div className="tile-head">
         <span className="tile-icon">{props.icon}</span>
         <span className="tile-titles">

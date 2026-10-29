@@ -30,6 +30,7 @@ import { WeatherForm } from "@/components/settings/WeatherForm";
 import { CalendarForm } from "@/components/settings/CalendarForm";
 import { LoginForm } from "@/components/LoginForm";
 import { ThemePicker } from "@/components/settings/ThemePicker";
+import { CardSizePicker } from "@/components/settings/CardSizePicker";
 import { SettingsLayout } from "@/components/settings/SettingsLayout";
 import { ScheduleForm } from "@/components/settings/ScheduleForm";
 import { BackupForm } from "@/components/settings/BackupForm";
@@ -238,8 +239,12 @@ function AppearanceSection() {
   const { t } = useI18n();
   return (
     <>
+      <h3 className="sub-heading">{t("settings.theme")}</h3>
       <p className="meta">{t("settings.appearanceHint")}</p>
       <ThemePicker />
+      <h3 className="sub-heading">{t("settings.cardSize")}</h3>
+      <p className="meta">{t("settings.cardSizeHint")}</p>
+      <CardSizePicker />
     </>
   );
 }

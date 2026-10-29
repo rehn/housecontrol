@@ -7,6 +7,7 @@ import { DashboardView } from "@/components/dashboard/DashboardView";
 import { TabBar, TabDialog } from "@/components/dashboard/TabBar";
 import { GrafanaPage } from "@/components/GrafanaPage";
 import { AuthButton } from "@/components/LoginForm";
+import { AppLogo } from "@/components/AppLogo";
 import { useAuth } from "@/lib/auth";
 import { saveDashboard } from "@/lib/api";
 import {
@@ -107,7 +108,10 @@ export default function Home() {
   return (
     <main className="wide">
       <header>
-        <h1>{appTitle(title)}</h1>
+        <h1 className="app-title">
+          <AppLogo />
+          {appTitle(title)}
+        </h1>
         <nav>
           <span className={`conn ${connected ? "open" : conn === "closed" ? "closed" : ""}`}>{statusText}</span>
           {!editing && canEdit && (

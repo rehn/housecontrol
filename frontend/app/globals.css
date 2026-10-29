@@ -28,6 +28,11 @@ body {
 main { max-width: 1100px; margin: 0 auto; padding: 16px; }
 header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
 h1 { font-size: 1.4rem; margin: 0; }
+.app-title { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.app-logo { flex: none; border-radius: 8px; }
+/* the dark logo needs a hairline to stand out on the dark background */
+:root[data-theme="dark"] .app-logo { box-shadow: 0 0 0 1px var(--border); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .app-logo { box-shadow: 0 0 0 1px var(--border); } }
 h2 { font-size: 1rem; color: var(--muted); font-weight: 600; margin: 24px 0 10px; }
 .meta { color: var(--muted); font-size: 0.85rem; }
 
@@ -538,3 +543,28 @@ main.settings-page { max-width: 1100px; }
 .backup-box h3 { margin: 0; font-size: 1.05rem; }
 .backup-box .field input { min-height: 48px; font-size: 1rem; }
 .backup-box input[type="file"] { padding: 10px; }
+
+/* light/group card size, per device (Settings → Appearance) */
+.sub-heading { margin: 18px 0 2px; font-size: 1rem; }
+.panel > .sub-heading:first-of-type { margin-top: 4px; }
+:root[data-card-size="compact"] .switch-tile { padding: 12px; gap: 10px; border-radius: 16px; }
+:root[data-card-size="compact"] .switch-tile .tile-head { min-height: 40px; gap: 10px; }
+:root[data-card-size="compact"] .switch-tile .tile-icon { width: 40px; height: 40px; }
+:root[data-card-size="compact"] .switch-tile .big-toggle { height: 46px; min-height: 46px; border-radius: 12px; }
+:root[data-card-size="compact"] .switch-tile .big-toggle .seg { border-radius: 12px; }
+:root[data-card-size="compact"] .dash-grid { gap: 12px; }
+:root[data-card-size="compact"] .dash-col { gap: 12px; }
+
+:root[data-card-size="mini"] .switch-tile { flex-direction: row; align-items: center; padding: 8px 10px 8px 12px; gap: 10px; border-radius: 14px; }
+:root[data-card-size="mini"] .switch-tile .tile-head { flex: 1; min-width: 0; min-height: 40px; gap: 10px; }
+:root[data-card-size="mini"] .switch-tile .tile-icon { width: 36px; height: 36px; }
+:root[data-card-size="mini"] .switch-tile .tile-title { font-size: 1rem; }
+:root[data-card-size="mini"] .switch-tile .tile-subtitle { font-size: 0.8rem; }
+:root[data-card-size="mini"] .switch-tile .big-toggle { flex: none; width: 108px; height: 44px; min-height: 44px; border-radius: 12px; }
+:root[data-card-size="mini"] .switch-tile .big-toggle .seg { border-radius: 12px; }
+:root[data-card-size="mini"] .dash-grid { gap: 10px; }
+:root[data-card-size="mini"] .dash-col { gap: 10px; }
+/* edit mode: keep the toggle clear of the pencil/× buttons */
+:root[data-card-size="mini"] .dash-card.edit .switch-tile { padding-right: 116px; }
+:root[data-card-size="mini"] .dash-card.edit .tile-head { padding-right: 0; }
+:root[data-card-size="mini"] .dash-card.edit .card-actions { top: 50%; transform: translateY(-50%); }
