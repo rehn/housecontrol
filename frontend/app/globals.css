@@ -303,6 +303,9 @@ nav .navlink.nav-icon { width: 48px; padding: 0; justify-content: center; }
   background: var(--card); color: var(--text); border-radius: 20px; padding: 20px;
   display: flex; flex-direction: column; gap: 14px;
 }
+/* The dialog scrolls as a whole; its parts must not shrink to fit (a scrolling
+   pick-list would otherwise collapse to zero height in a long dialog). */
+.dialog > * { flex-shrink: 0; }
 .dialog h2 { margin: 0; color: var(--text); font-size: 1.2rem; }
 .dialog .btn { min-height: 48px; padding: 0 20px; font-size: 1rem; }
 .dialog .field input { min-height: 48px; font-size: 1rem; }
