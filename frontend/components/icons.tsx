@@ -98,3 +98,14 @@ export const ChartIcon = ({ size = 22 }: P) =>
     <path d="M3 3h2v16h16v2H3V3Zm16.3 3.3 1.4 1.4-6.2 6.2-3-3-3.8 3.8-1.4-1.4 5.2-5.2 3 3 4.8-4.8Z" />,
     "chart",
   );
+
+const HORIZON_SUN =
+  "M12 12a5 5 0 0 1 5 5H7a5 5 0 0 1 5-5ZM2 18h20v2H2v-2Zm1.6-4.9 1.4-1.4 1.8 1.8-1.4 1.4-1.8-1.8Zm13.8.4 1.8-1.8 1.4 1.4-1.8 1.8-1.4-1.4Z";
+
+/** half sun on the horizon, arrow up */
+export const SunriseIcon = ({ size = 24 }: P) =>
+  svg(size, <path d={`${HORIZON_SUN}M12 2l4 4-1.4 1.4L13 5.8V10h-2V5.8L9.4 7.4 8 6l4-4Z`} />, "sunrise");
+
+/** half sun on the horizon, arrow down */
+export const SunsetIcon = ({ size = 24 }: P) =>
+  svg(size, <path d={`${HORIZON_SUN}M11 2h2v4.2l1.6-1.6L16 6l-4 4-4-4 1.4-1.4L11 6.2V2Z`} />, "sunset");

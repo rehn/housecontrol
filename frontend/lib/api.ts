@@ -127,6 +127,8 @@ export interface WeatherForecast {
   stale?: boolean;
   current: { temperature: number; condition: WeatherCondition };
   daily: { date: string; min: number; max: number; condition: WeatherCondition }[];
+  /** today's sunrise/sunset (RFC 3339, home time zone), or polar day/night */
+  sun?: { sunrise?: string; sunset?: string; polar?: "day" | "night" };
 }
 
 export interface WeatherSettings {

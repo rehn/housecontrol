@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/url"
 	"testing"
 	"time"
@@ -211,4 +212,38 @@ func TestLocateEndpoint(t *testing.T) {
 	if code, v = do(t, "GET", e.srv.URL+"/api/weather/locate", ""); code != 502 || v["code"] != "locate_failed" {
 		t.Fatalf("%d %v", code, v)
 	}
+}
+
+func TestWeatherIncludesSunriseAndSunset(t *testing.T) {
+	e := newEnv(t)
+	do(t, "PUT", e.srv.URL+"/api/settings/weather", `{"provider":"smhi","latitude":59.6361,"longitude":17.0777,"location":"Enköping"}`)
+	_, v := do(t, "GET", e.srv.URL+"/api/weather", "")
+	sun, ok := v["sun"].(map[string]any)
+	if !ok {
+		t.Fatalf("no sun: %v", v)
+	}
+	rise, err1 := time.Parse(time.RFC3339, fmt.Sprint(sun["sunrise"]))
+	set, err2 := time.Parse(time.RFC3339, fmt.Sprint(sun["sunset"]))
+	if err1 != nil || err2 != nil || !set.After(rise) {
+		t.Fatalf("%v", sun)
+	}
+	if y, m, d := rise.In(time.Local).Date(); time.Date(y, m, d, 0, 0, 0, 0, time.Local) != startOfToday() {
+		t.Fatalf("sunrise is not today: %v", sun)
+	}
+}
+
+func TestWeatherSunUnderMidnightSun(t *testing.T) {
+	e := newEnv(t)
+	// near the North Pole there is either polar day or night, any day of the year except around the equinoxes
+	do(t, "PUT", e.srv.URL+"/api/settings/weather", `{"provider":"metno","latitude":89.9,"longitude":0,"location":"Pole"}`)
+	_, v := do(t, "GET", e.srv.URL+"/api/weather", "")
+	sun := v["sun"].(map[string]any)
+	if p := sun["polar"]; p != "day" && p != "night" && sun["sunrise"] == nil {
+		t.Fatalf("%v", sun)
+	}
+}
+
+func startOfToday() time.Time {
+	y, m, d := time.Now().Date()
+	return time.Date(y, m, d, 0, 0, 0, 0, time.Local)
 }

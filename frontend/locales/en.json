@@ -75,7 +75,11 @@
       "snow": "Snow",
       "snow_showers": "Snow showers",
       "unknown": "Unknown"
-    }
+    },
+    "sunrise": "Sunrise",
+    "sunset": "Sunset",
+    "polarDay": "Midnight sun",
+    "polarNight": "Polar night"
   },
   "calendar": {
     "loading": "Loading calendar…",

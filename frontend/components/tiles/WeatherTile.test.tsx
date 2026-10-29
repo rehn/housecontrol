@@ -97,4 +97,29 @@ describe("WeatherTile", () => {
     rerender(<WeatherTile refreshKey={1} />);
     await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
   });
+
+  it("shows today's sunrise and sunset", async () => {
+    stubFetch(200, { ...forecast, sun: { sunrise: "2026-10-29T07:12:00+01:00", sunset: "2026-10-29T16:23:00+01:00" } });
+    render(<WeatherTile />);
+    expect(await screen.findByLabelText("Sunrise 07:12")).toBeTruthy();
+    expect(screen.getByLabelText("Sunset 16:23")).toBeTruthy();
+    expect(screen.getByText("07:12")).toBeTruthy();
+  });
+
+  it("says so under midnight sun or polar night", async () => {
+    stubFetch(200, { ...forecast, sun: { polar: "night" } });
+    render(<WeatherTile />);
+    expect(await screen.findByText("Polar night")).toBeTruthy();
+  });
+
+  it("names sunrise and sunset in Swedish", async () => {
+    stubFetch(200, { ...forecast, sun: { sunrise: "2026-10-29T07:12:00+01:00", sunset: "2026-10-29T16:23:00+01:00" } });
+    render(
+      <I18nProvider language="sv">
+        <WeatherTile />
+      </I18nProvider>,
+    );
+    expect(await screen.findByLabelText("Soluppgång 07:12")).toBeTruthy();
+    expect(screen.getByLabelText("Solnedgång 16:23")).toBeTruthy();
+  });
 });

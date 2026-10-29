@@ -82,7 +82,7 @@ or by a schedule – show up on every screen right away.
 | **Device** | One light or outlet. You can give it its own name. |
 | **Group** | Several lights/outlets switched together. |
 | **Clock** | Time and date. |
-| **Weather** | Weather now, today's high/low and the next days, for the place chosen under Settings → Weather. |
+| **Weather** | Weather now, today's high/low, today's sunrise and sunset, and the next days, for the place chosen under Settings → Weather. |
 | **Calendar** | Events from your iCal calendars, a week at a time. |
 | **Grafana panel** | One graph or number from Grafana (see [Grafana](#grafana)). |
 

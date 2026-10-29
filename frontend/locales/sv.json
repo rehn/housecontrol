@@ -75,7 +75,11 @@
       "snow": "Snöfall",
       "snow_showers": "Snöbyar",
       "unknown": "Okänt"
-    }
+    },
+    "sunrise": "Soluppgång",
+    "sunset": "Solnedgång",
+    "polarDay": "Midnattssol",
+    "polarNight": "Polarnatt"
   },
   "calendar": {
     "loading": "Hämtar kalendern…",

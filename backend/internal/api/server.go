@@ -386,7 +386,26 @@ func (s *Server) getWeather(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	f.Area = cur.Area
-	writeJSON(w, http.StatusOK, f)
+	writeJSON(w, http.StatusOK, struct {
+		weather.Forecast
+		Sun sunView `json:"sun"`
+	}{f, todaysSun(cur.Latitude, cur.Longitude)})
+}
+
+// sunView is today's sunrise/sunset for the weather card (RFC 3339, home time
+// zone), or polar "day"/"night" when the sun doesn't rise or set today.
+type sunView struct {
+	Sunrise string `json:"sunrise,omitempty"`
+	Sunset  string `json:"sunset,omitempty"`
+	Polar   string `json:"polar,omitempty"`
+}
+
+func todaysSun(lat, lon float64) sunView {
+	sun := schedule.SunOn(time.Now(), lat, lon)
+	if sun.Polar != "" {
+		return sunView{Polar: sun.Polar}
+	}
+	return sunView{Sunrise: sun.Rise.Local().Format(time.RFC3339), Sunset: sun.Set.Local().Format(time.RFC3339)}
 }
 
 // lookupArea names a position, used by Settings → "Use my position".

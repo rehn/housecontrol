@@ -364,6 +364,9 @@ nav .navlink.nav-icon { width: 48px; padding: 0; justify-content: center; }
 }
 .weather-now-temp { display: flex; flex-direction: column; align-items: flex-end; text-align: right; }
 .weather-temp { font-size: 1.6rem; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.weather-sun { display: flex; gap: 22px; align-items: center; margin-top: -6px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.sun-time { display: inline-flex; align-items: center; gap: 6px; font-size: 1rem; }
+.sun-time svg { color: var(--accent); }
 .weather-days { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; text-align: center; }
 .weather-day { display: flex; flex-direction: column; align-items: center; gap: 4px; font-variant-numeric: tabular-nums; }
 .weather-max { font-size: 1.05rem; }

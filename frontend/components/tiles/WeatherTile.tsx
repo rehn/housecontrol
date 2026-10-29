@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { ApiError, getWeather, type WeatherForecast } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 import { WeatherIcon } from "./WeatherIcon";
+import { SunriseIcon, SunsetIcon } from "@/components/icons";
 
 /** Display names of the providers (proper nouns, not translated). */
 export const PROVIDER_NAMES: Record<string, string> = {
@@ -14,6 +15,9 @@ export const PROVIDER_NAMES: Record<string, string> = {
 };
 
 const RELOAD_MS = 10 * 60 * 1000; // backend caches 15 min anyway
+
+/** "HH:MM" as the home's clock shows it (the server sends its own time zone). */
+const clock = (iso: string) => iso.slice(11, 16);
 
 type State =
   | { kind: "loading" }
@@ -86,6 +90,25 @@ export function WeatherTile({ refreshKey = 0 }: { refreshKey?: number }) {
           )}
         </div>
       </div>
+
+      {f.sun && (f.sun.polar || (f.sun.sunrise && f.sun.sunset)) && (
+        <div className="weather-sun">
+          {f.sun.polar ? (
+            <span className="meta">{t(f.sun.polar === "day" ? "weather.polarDay" : "weather.polarNight")}</span>
+          ) : (
+            <>
+              <span className="sun-time" aria-label={`${t("weather.sunrise")} ${clock(f.sun.sunrise!)}`}>
+                <SunriseIcon />
+                <span aria-hidden="true">{clock(f.sun.sunrise!)}</span>
+              </span>
+              <span className="sun-time" aria-label={`${t("weather.sunset")} ${clock(f.sun.sunset!)}`}>
+                <SunsetIcon />
+                <span aria-hidden="true">{clock(f.sun.sunset!)}</span>
+              </span>
+            </>
+          )}
+        </div>
+      )}
 
       <div className="weather-days">
         {f.daily.map((d) => {
