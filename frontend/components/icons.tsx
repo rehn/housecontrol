@@ -74,3 +74,19 @@ export const ChevronLeftIcon = ({ size = 22 }: P) =>
 
 export const ChevronRightIcon = ({ size = 22 }: P) =>
   svg(size, <path d="M8.6 5.4 10 4l8 8-8 8-1.4-1.4 6.6-6.6z" />, "chevron-right");
+
+/** arrow into a door: log in */
+export const LoginIcon = ({ size = 22 }: P) =>
+  svg(
+    size,
+    <path d="M11 3h8a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-8v-2h8V5h-8V3ZM10 7l-1.4 1.4 2.6 2.6H3v2h8.2l-2.6 2.6L10 17l5-5-5-5Z" />,
+    "login",
+  );
+
+/** arrow out of a door: log out */
+export const LogoutIcon = ({ size = 22 }: P) =>
+  svg(
+    size,
+    <path d="M13 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8v-2H5V5h8V3Zm3 4-1.4 1.4 2.6 2.6H9v2h8.2l-2.6 2.6L16 17l5-5-5-5Z" />,
+    "logout",
+  );

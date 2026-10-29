@@ -266,6 +266,7 @@ main.wide { max-width: 1400px; }
 }
 .edit-bar .btn, nav .navlink { min-height: 48px; min-width: 48px; padding: 0 16px; font-size: 1rem; }
 nav .navlink { display: inline-flex; align-items: center; cursor: pointer; font: inherit; }
+nav .navlink.nav-icon { width: 48px; padding: 0; justify-content: center; }
 .edit-bar-spacer { flex: 1; }
 .edit-error { color: var(--bad); font-size: 0.9rem; }
 .edit-hint { margin: 0 0 4px; }

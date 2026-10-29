@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { useAuth } from "@/lib/auth";
 import { errorText, useI18n } from "@/lib/i18n";
+import { LoginIcon, LogoutIcon } from "@/components/icons";
 
 /** User name + password. Calls onDone after a successful login. */
 export function LoginForm({ onDone, onCancel }: { onDone?: () => void; onCancel?: () => void }) {
@@ -85,7 +86,7 @@ export function LoginDialog({ onClose }: { onClose: () => void }) {
   );
 }
 
-/** "Log in" / "Log out" for the home page menu. Nothing when login is switched off. */
+/** Log in / Log out icon for the home page menu. Nothing when login is switched off. */
 export function AuthButton() {
   const { ready, required, loggedIn, logout } = useAuth();
   const { t } = useI18n();
@@ -94,12 +95,24 @@ export function AuthButton() {
   return (
     <>
       {loggedIn ? (
-        <button type="button" className="navlink" onClick={() => logout().catch(() => {})}>
-          {t("auth.logout")}
+        <button
+          type="button"
+          className="navlink nav-icon"
+          aria-label={t("auth.logout")}
+          title={t("auth.logout")}
+          onClick={() => logout().catch(() => {})}
+        >
+          <LogoutIcon />
         </button>
       ) : (
-        <button type="button" className="navlink" onClick={() => setOpen(true)}>
-          {t("auth.login")}
+        <button
+          type="button"
+          className="navlink nav-icon"
+          aria-label={t("auth.login")}
+          title={t("auth.login")}
+          onClick={() => setOpen(true)}
+        >
+          <LoginIcon />
         </button>
       )}
       {open && <LoginDialog onClose={() => setOpen(false)} />}

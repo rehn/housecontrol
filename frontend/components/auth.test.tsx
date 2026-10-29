@@ -225,6 +225,27 @@ describe("AuthButton (home page menu)", () => {
     expect(screen.getByRole("dialog", { name: "Log in" })).toBeTruthy();
   });
 
+  it("shows only an icon, with the words as name and tooltip", () => {
+    const { rerender } = render(
+      <AuthContext.Provider value={auth({})}>
+        <AuthButton />
+      </AuthContext.Provider>,
+    );
+    const login = screen.getByRole("button", { name: "Log in" });
+    expect(login.textContent).toBe("");
+    expect(login.querySelector('svg[data-icon="login"]')).not.toBeNull();
+    expect(login.getAttribute("title")).toBe("Log in");
+
+    rerender(
+      <AuthContext.Provider value={auth({ loggedIn: true, canEdit: true })}>
+        <AuthButton />
+      </AuthContext.Provider>,
+    );
+    const logout = screen.getByRole("button", { name: "Log out" });
+    expect(logout.textContent).toBe("");
+    expect(logout.querySelector('svg[data-icon="logout"]')).not.toBeNull();
+  });
+
   it("shows nothing when the server has no password", () => {
     const { container } = render(
       <AuthContext.Provider value={auth({ required: false, loggedIn: true, canEdit: true })}>
