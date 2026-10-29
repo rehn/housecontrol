@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import type { Device } from "@/lib/api";
-import { Card, CardType, newId } from "@/lib/dashboard";
-import { CalendarIcon, ClockIcon, GroupIcon, BulbIcon } from "@/components/icons";
+import { Card, CardType, GRAFANA_HEIGHT, newId } from "@/lib/dashboard";
+import { extractUrl, panelEmbedUrl } from "@/lib/grafana";
+import { CalendarIcon, ChartIcon, ClockIcon, GroupIcon, BulbIcon } from "@/components/icons";
 import { WeatherIcon } from "@/components/tiles/WeatherIcon";
 import { useI18n } from "@/lib/i18n";
 
@@ -14,6 +15,7 @@ const TYPES: { type: CardType; label: string; hint: string; icon: React.ReactNod
   { type: "clock", label: "typeClock", hint: "typeClockHint", icon: <ClockIcon size={28} /> },
   { type: "weather", label: "typeWeather", hint: "typeWeatherHint", icon: <WeatherIcon condition="partly_cloudy" size={28} /> },
   { type: "calendar", label: "typeCalendar", hint: "typeCalendarHint", icon: <CalendarIcon size={28} /> },
+  { type: "grafana", label: "typeGrafana", hint: "typeGrafanaHint", icon: <ChartIcon size={28} /> },
 ];
 
 // card types without settings are added right away
@@ -33,6 +35,9 @@ export function CardDialog(props: {
   const [title, setTitle] = useState(props.initial?.title ?? "");
   const [deviceId, setDeviceId] = useState(props.initial?.deviceId ?? "");
   const [deviceIds, setDeviceIds] = useState<string[]>(props.initial?.deviceIds ?? []);
+  const [link, setLink] = useState(props.initial?.url ?? "");
+  const [height, setHeight] = useState(String(props.initial?.height ?? GRAFANA_HEIGHT));
+  const panelUrl = extractUrl(link);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && props.onClose();
@@ -50,10 +55,20 @@ export function CardDialog(props: {
     if (instant(t)) props.onSubmit({ id, type: t });
     if (t === "device") props.onSubmit({ id, type: "device", deviceId, ...(trimmed ? { title: trimmed } : {}) });
     if (t === "group") props.onSubmit({ id, type: "group", title: trimmed, deviceIds });
+    if (t === "grafana" && panelUrl) {
+      const h = Math.min(1200, Math.max(120, Math.round(Number(height) || GRAFANA_HEIGHT)));
+      props.onSubmit({ id, type: "grafana", url: panelEmbedUrl(panelUrl), height: h, ...(trimmed ? { title: trimmed } : {}) });
+    }
   };
 
   const valid =
-    type === "device" ? deviceId !== "" : type === "group" ? title.trim() !== "" && deviceIds.length > 0 : true;
+    type === "device"
+      ? deviceId !== ""
+      : type === "group"
+        ? title.trim() !== "" && deviceIds.length > 0
+        : type === "grafana"
+          ? !!panelUrl
+          : true;
 
   const toggleMember = (id: string) =>
     setDeviceIds((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]));
@@ -74,7 +89,9 @@ export function CardDialog(props: {
               ? t("cardDialog.titleAddDevice")
               : type === "group"
                 ? t("cardDialog.titleAddGroup")
-                : t("cardDialog.titleAdd")}
+                : type === "grafana"
+                  ? t("cardDialog.titleAddGrafana")
+                  : t("cardDialog.titleAdd")}
         </h2>
 
         {!type && (
@@ -140,6 +157,41 @@ export function CardDialog(props: {
               ))}
               {controllable.length === 0 && <p className="meta">{t("cardDialog.noControllable")}</p>}
             </div>
+            <label className="field">
+              <span className="field-label">
+                {t("cardDialog.name")} <span className="meta">{t("cardDialog.nameOptional")}</span>
+              </span>
+              <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={60} />
+            </label>
+          </>
+        )}
+
+        {type === "grafana" && (
+          <>
+            <label className="field">
+              <span className="field-label">{t("cardDialog.grafanaUrl")}</span>
+              <input
+                value={link}
+                onChange={(e) => setLink(e.target.value)}
+                placeholder="https://grafana…/d-solo/…"
+                autoComplete="off"
+                spellCheck={false}
+              />
+            </label>
+            <p className="meta field-hint">{t("cardDialog.grafanaUrlHint")}</p>
+            {link.trim() !== "" && !panelUrl && <p className="field-error">{t("tabs.invalidUrl")}</p>}
+            <label className="field">
+              <span className="field-label">{t("cardDialog.grafanaHeight")}</span>
+              <input
+                type="number"
+                inputMode="numeric"
+                min={120}
+                max={1200}
+                step={20}
+                value={height}
+                onChange={(e) => setHeight(e.target.value)}
+              />
+            </label>
             <label className="field">
               <span className="field-label">
                 {t("cardDialog.name")} <span className="meta">{t("cardDialog.nameOptional")}</span>

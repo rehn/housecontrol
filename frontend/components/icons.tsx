@@ -90,3 +90,11 @@ export const LogoutIcon = ({ size = 22 }: P) =>
     <path d="M13 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8v-2H5V5h8V3Zm3 4-1.4 1.4 2.6 2.6H9v2h8.2l-2.6 2.6L16 17l5-5-5-5Z" />,
     "logout",
   );
+
+/** line chart: Grafana panels and dashboards */
+export const ChartIcon = ({ size = 22 }: P) =>
+  svg(
+    size,
+    <path d="M3 3h2v16h16v2H3V3Zm16.3 3.3 1.4 1.4-6.2 6.2-3-3-3.8 3.8-1.4-1.4 5.2-5.2 3 3 4.8-4.8Z" />,
+    "chart",
+  );

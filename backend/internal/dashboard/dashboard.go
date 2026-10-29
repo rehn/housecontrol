@@ -1,16 +1,20 @@
-// Package dashboard defines the user-editable front-page layout: columns of
-// cards (clock, single device, group of devices).
+// Package dashboard defines the user-editable layout: tabs, each either a
+// page of cards in columns (clock, device, group, weather, calendar, Grafana
+// panel) or a whole Grafana dashboard.
 package dashboard
 
 import (
 	"errors"
 	"fmt"
+	"net/url"
 	"strings"
 	"unicode/utf8"
 )
 
 const (
-	CurrentVersion  = 1
+	CurrentVersion  = 2 // 1 = a single page of columns, 2 = tabs
+	MaxTabs         = 12
+	MaxTabTitleLen  = 30
 	MaxColumns      = 6
 	MaxCards        = 200
 	MaxGroupDevices = 50
@@ -23,11 +27,34 @@ const (
 	TypeGroup    = "group"
 	TypeWeather  = "weather"
 	TypeCalendar = "calendar"
+	TypeGrafana  = "grafana"
+)
+
+const (
+	KindCards   = "cards"   // a page of cards
+	KindGrafana = "grafana" // a whole Grafana dashboard
+)
+
+const (
+	DefaultGrafanaHeight = 300
+	MinGrafanaHeight     = 120
+	MaxGrafanaHeight     = 1200
 )
 
 type Dashboard struct {
-	Version int      `json:"version"`
-	Columns []Column `json:"columns"`
+	Version int   `json:"version"`
+	Tabs    []Tab `json:"tabs"`
+	// Columns is the version 1 layout (one page, no tabs). Upgrade moves it
+	// into the first tab; it is never written any more.
+	Columns []Column `json:"columns,omitempty"`
+}
+
+type Tab struct {
+	ID      string   `json:"id"`
+	Title   string   `json:"title,omitempty"` // empty = the UI's default name
+	Kind    string   `json:"kind"`
+	Columns []Column `json:"columns,omitempty"` // kind cards
+	URL     string   `json:"url,omitempty"`     // kind grafana
 }
 
 type Column struct {
@@ -41,43 +68,108 @@ type Card struct {
 	Title     string   `json:"title,omitempty"`     // optional for device, required for group
 	DeviceID  string   `json:"deviceId,omitempty"`  // device card
 	DeviceIDs []string `json:"deviceIds,omitempty"` // group card
+	URL       string   `json:"url,omitempty"`       // grafana card (panel embed)
+	Height    int      `json:"height,omitempty"`    // grafana card, px
 }
 
-// Normalize validates d and returns a cleaned copy (trimmed titles, no
-// duplicate group members, non-nil card slices, current version).
+// Upgrade turns a version 1 layout (columns only) into one "home" tab.
+func (d Dashboard) Upgrade() Dashboard {
+	if len(d.Tabs) == 0 && d.Columns != nil {
+		d.Tabs = []Tab{{ID: "home", Kind: KindCards, Columns: d.Columns}}
+	}
+	d.Columns = nil
+	d.Version = CurrentVersion
+	return d
+}
+
+// Normalize validates d and returns a cleaned copy (upgraded to tabs,
+// trimmed titles, no duplicate group members, non-nil card slices).
 func (d Dashboard) Normalize() (Dashboard, error) {
-	if len(d.Columns) == 0 {
-		return d, errors.New("dashboard needs at least one column")
+	d = d.Upgrade()
+	if len(d.Tabs) == 0 {
+		return d, errors.New("dashboard needs at least one tab")
 	}
-	if len(d.Columns) > MaxColumns {
-		return d, fmt.Errorf("at most %d columns", MaxColumns)
+	if len(d.Tabs) > MaxTabs {
+		return d, fmt.Errorf("at most %d tabs", MaxTabs)
 	}
-	out := Dashboard{Version: CurrentVersion, Columns: make([]Column, 0, len(d.Columns))}
-	seen := map[string]bool{}
+	out := Dashboard{Version: CurrentVersion, Tabs: make([]Tab, 0, len(d.Tabs))}
+	tabIDs := map[string]bool{}
+	cardIDs := map[string]bool{}
 	total := 0
-	for i, col := range d.Columns {
-		if strings.TrimSpace(col.ID) == "" {
-			return d, fmt.Errorf("column %d has no id", i+1)
+	for i, tab := range d.Tabs {
+		if strings.TrimSpace(tab.ID) == "" {
+			return d, fmt.Errorf("tab %d has no id", i+1)
 		}
-		nc := Column{ID: col.ID, Cards: make([]Card, 0, len(col.Cards))}
-		for _, c := range col.Cards {
-			total++
-			if total > MaxCards {
-				return d, fmt.Errorf("at most %d cards", MaxCards)
-			}
-			nc2, err := normalizeCard(c)
+		if tabIDs[tab.ID] {
+			return d, fmt.Errorf("duplicate tab id %q", tab.ID)
+		}
+		tabIDs[tab.ID] = true
+		nt := Tab{ID: tab.ID, Title: strings.TrimSpace(tab.Title), Kind: tab.Kind}
+		if utf8.RuneCountInString(nt.Title) > MaxTabTitleLen {
+			return d, fmt.Errorf("tab title longer than %d characters", MaxTabTitleLen)
+		}
+		switch tab.Kind {
+		case KindCards:
+			cols, err := normalizeColumns(tab.Columns, cardIDs, &total)
 			if err != nil {
 				return d, err
 			}
+			nt.Columns = cols
+		case KindGrafana:
+			u, err := embedURL(tab.URL)
+			if err != nil {
+				return d, fmt.Errorf("tab %q: %w", tab.ID, err)
+			}
+			nt.URL = u
+		default:
+			return d, fmt.Errorf("unknown tab kind %q", tab.Kind)
+		}
+		out.Tabs = append(out.Tabs, nt)
+	}
+	return out, nil
+}
+
+func normalizeColumns(cols []Column, seen map[string]bool, total *int) ([]Column, error) {
+	if len(cols) == 0 {
+		return nil, errors.New("a page of cards needs at least one column")
+	}
+	if len(cols) > MaxColumns {
+		return nil, fmt.Errorf("at most %d columns", MaxColumns)
+	}
+	out := make([]Column, 0, len(cols))
+	for i, col := range cols {
+		if strings.TrimSpace(col.ID) == "" {
+			return nil, fmt.Errorf("column %d has no id", i+1)
+		}
+		nc := Column{ID: col.ID, Cards: make([]Card, 0, len(col.Cards))}
+		for _, c := range col.Cards {
+			*total++
+			if *total > MaxCards {
+				return nil, fmt.Errorf("at most %d cards", MaxCards)
+			}
+			nc2, err := normalizeCard(c)
+			if err != nil {
+				return nil, err
+			}
 			if seen[nc2.ID] {
-				return d, fmt.Errorf("duplicate card id %q", nc2.ID)
+				return nil, fmt.Errorf("duplicate card id %q", nc2.ID)
 			}
 			seen[nc2.ID] = true
 			nc.Cards = append(nc.Cards, nc2)
 		}
-		out.Columns = append(out.Columns, nc)
+		out = append(out, nc)
 	}
 	return out, nil
+}
+
+// embedURL accepts only absolute http(s) links (they end up in an iframe).
+func embedURL(raw string) (string, error) {
+	raw = strings.TrimSpace(raw)
+	u, err := url.Parse(raw)
+	if raw == "" || err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+		return "", errors.New("needs a http(s) link to Grafana")
+	}
+	return raw, nil
 }
 
 func normalizeCard(c Card) (Card, error) {
@@ -88,9 +180,26 @@ func normalizeCard(c Card) (Card, error) {
 	if utf8.RuneCountInString(c.Title) > MaxTitleLen {
 		return c, fmt.Errorf("card title longer than %d characters", MaxTitleLen)
 	}
+	if c.Type != TypeGrafana {
+		c.URL, c.Height = "", 0
+	}
 	switch c.Type {
 	case TypeClock, TypeWeather, TypeCalendar:
 		c.DeviceID, c.DeviceIDs = "", nil
+	case TypeGrafana:
+		u, err := embedURL(c.URL)
+		if err != nil {
+			return c, fmt.Errorf("card %q: %w", c.ID, err)
+		}
+		c.URL, c.DeviceID, c.DeviceIDs = u, "", nil
+		switch {
+		case c.Height == 0:
+			c.Height = DefaultGrafanaHeight
+		case c.Height < MinGrafanaHeight:
+			c.Height = MinGrafanaHeight
+		case c.Height > MaxGrafanaHeight:
+			c.Height = MaxGrafanaHeight
+		}
 	case TypeDevice:
 		if c.DeviceID == "" {
 			return c, fmt.Errorf("device card %q has no deviceId", c.ID)

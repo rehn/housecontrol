@@ -626,8 +626,18 @@ func newCalendarID() string {
 
 // --- dashboard ------------------------------------------------------------------
 
-func (s *Server) getDashboard(w http.ResponseWriter, _ *http.Request) {
+// loadDashboard reads the saved layout, upgraded to tabs (nil = none saved).
+func (s *Server) loadDashboard() (*dashboard.Dashboard, error) {
 	d, err := s.store.LoadDashboard()
+	if err != nil || d == nil {
+		return d, err
+	}
+	up := d.Upgrade()
+	return &up, nil
+}
+
+func (s *Server) getDashboard(w http.ResponseWriter, _ *http.Request) {
+	d, err := s.loadDashboard()
 	if err != nil {
 		writeErr(w, http.StatusInternalServerError, "could not read dashboard: "+err.Error())
 		return
@@ -764,7 +774,7 @@ func (s *Server) ws(w http.ResponseWriter, r *http.Request) {
 	if write(ctx, conn, devices.Event{Type: "devices", Devices: s.reg.List()}) != nil {
 		return
 	}
-	if d, err := s.store.LoadDashboard(); err == nil {
+	if d, err := s.loadDashboard(); err == nil {
 		if write(ctx, conn, devices.Event{Type: "dashboard", Dashboard: d}) != nil {
 			return
 		}

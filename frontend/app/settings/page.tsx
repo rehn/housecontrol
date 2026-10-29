@@ -26,6 +26,7 @@ import { WeatherForm } from "@/components/settings/WeatherForm";
 import { CalendarForm } from "@/components/settings/CalendarForm";
 import { LoginForm } from "@/components/LoginForm";
 import { ThemePicker } from "@/components/settings/ThemePicker";
+import { SettingsLayout } from "@/components/settings/SettingsLayout";
 import { useAuth } from "@/lib/auth";
 import { findMyPosition } from "@/lib/position";
 import { useLive } from "@/lib/live";
@@ -47,7 +48,7 @@ export default function SettingsPage() {
   const { ready, canEdit } = useAuth();
 
   return (
-    <main className="narrow">
+    <main className={canEdit ? "settings-page" : "narrow"}>
       <header>
         <h1>{t("settings.title")}</h1>
         <nav>
@@ -63,15 +64,17 @@ export default function SettingsPage() {
           <LoginForm />
         </section>
       ) : (
-        <>
-          <AccountSection />
-          <GeneralSection />
-          <LanguageSection />
-          <AppearanceSection />
-          <WeatherSection />
-          <CalendarSection />
-          <MqttSection liveStatus={mqtt} />
-        </>
+        <SettingsLayout
+          sections={[
+            { id: "general", label: t("settings.general"), content: <GeneralSection /> },
+            { id: "appearance", label: t("settings.appearance"), content: <AppearanceSection /> },
+            { id: "language", label: t("settings.language"), content: <LanguageSection /> },
+            { id: "weather", label: t("settings.weather"), content: <WeatherSection /> },
+            { id: "calendars", label: t("settings.calendars"), content: <CalendarSection /> },
+            { id: "mqtt", label: t("settings.mqttBroker"), content: <MqttSection liveStatus={mqtt} /> },
+            { id: "account", label: t("auth.account"), content: <AccountSection /> },
+          ]}
+        />
       )}
     </main>
   );
@@ -85,8 +88,7 @@ function AccountSection() {
     return <div className="banner warn">{t("auth.off")}</div>;
   }
   return (
-    <section className="panel">
-      <h2>{t("auth.account")}</h2>
+    <>
       <div className="account-row">
         <span>{t("auth.loggedInAs", { name: username ?? "" })}</span>
         <button
@@ -98,7 +100,7 @@ function AccountSection() {
         </button>
       </div>
       {error && <div className="banner bad">{error}</div>}
-    </section>
+    </>
   );
 }
 
@@ -110,10 +112,9 @@ function GeneralSection() {
     setTitle(res.title ?? "");
   };
   return (
-    <section className="panel">
-      <h2>{t("settings.general")}</h2>
+    <>
       <TitleForm value={title} onSave={save} />
-    </section>
+    </>
   );
 }
 
@@ -131,8 +132,7 @@ function WeatherSection() {
   useEffect(load, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <section className="panel">
-      <h2>{t("settings.weather")}</h2>
+    <>
       {error && (
         <div className="banner bad">
           <span>{error}</span>
@@ -160,7 +160,7 @@ function WeatherSection() {
           }
         />
       )}
-    </section>
+    </>
   );
 }
 
@@ -178,8 +178,7 @@ function CalendarSection() {
   useEffect(load, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <section className="panel">
-      <h2>{t("settings.calendars")}</h2>
+    <>
       {error && (
         <div className="banner bad">
           <span>{error}</span>
@@ -189,18 +188,17 @@ function CalendarSection() {
         </div>
       )}
       {calendars && <CalendarForm initial={calendars} onSave={saveCalendarSettings} test={testCalendarLink} />}
-    </section>
+    </>
   );
 }
 
 function AppearanceSection() {
   const { t } = useI18n();
   return (
-    <section className="panel">
-      <h2>{t("settings.appearance")}</h2>
+    <>
       <p className="meta">{t("settings.appearanceHint")}</p>
       <ThemePicker />
-    </section>
+    </>
   );
 }
 
@@ -222,8 +220,7 @@ function LanguageSection() {
   };
 
   return (
-    <section className="panel">
-      <h2>{t("settings.language")}</h2>
+    <>
       <p className="meta">{t("settings.languageHint")}</p>
       <div className="choice-row" role="radiogroup" aria-label={t("settings.language")}>
         {languageList.map((l) => (
@@ -241,7 +238,7 @@ function LanguageSection() {
         ))}
       </div>
       {error && <div className="banner bad">{error}</div>}
-    </section>
+    </>
   );
 }
 
@@ -328,8 +325,7 @@ function MqttSection({ liveStatus }: { liveStatus: MqttSettings["status"] | null
   const status = liveStatus ?? loaded?.status;
 
   return (
-    <section className="panel">
-      <h2>{t("settings.mqttBroker")}</h2>
+    <>
       {status && (
         <p className={`status-line ${status.state}`}>
           <span className="dot" /> {statusText(t, status.state)}
@@ -415,7 +411,7 @@ function MqttSection({ liveStatus }: { liveStatus: MqttSettings["status"] | null
         </div>
         {loaded?.source === "config" && <p className="meta">{t("settings.fromConfig")}</p>}
       </form>
-    </section>
+    </>
   );
 }
 

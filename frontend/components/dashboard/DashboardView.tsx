@@ -26,8 +26,8 @@ import type { Device } from "@/lib/api";
 import {
   addCard,
   Card,
-  Dashboard,
-  defaultDashboard,
+  defaultLayout,
+  Layout,
   MAX_COLUMNS,
   MIN_COLUMNS,
   moveCard,
@@ -41,19 +41,21 @@ import { WeatherTile } from "@/components/tiles/WeatherTile";
 import { CalendarTile } from "@/components/tiles/CalendarTile";
 import { DeviceTile, TileActions } from "@/components/tiles/DeviceTile";
 import { GroupTile } from "@/components/tiles/GroupTile";
+import { GrafanaTile } from "@/components/tiles/GrafanaTile";
 import { CloseIcon, GripIcon, PencilIcon } from "@/components/icons";
 import { CardDialog } from "./CardDialog";
 import { errorText, useI18n } from "@/lib/i18n";
 
 type Props = TileActions & {
-  dashboard: Dashboard;
+  /** the cards of the open tab */
+  layout: Layout;
   devices: Device[];
   editing: boolean;
   /** bump to make weather cards reload (weather settings changed) */
   weatherVersion?: number;
   /** bump to make calendar cards reload (calendars changed) */
   calendarVersion?: number;
-  onSave: (d: Dashboard) => Promise<void>;
+  onSave: (d: Layout) => Promise<void>;
   onCancel: () => void;
 };
 
@@ -63,11 +65,11 @@ export function DashboardView(props: Props) {
   const byId = useMemo(() => Object.fromEntries(devices.map((d) => [d.id, d])), [devices]);
 
   // Edits happen on a draft; only Save sends it to the server.
-  const [draft, setDraft] = useState(props.dashboard);
+  const [draft, setDraft] = useState(props.layout);
   useEffect(() => {
-    if (!editing) setDraft(props.dashboard);
-  }, [editing, props.dashboard]);
-  const shown = editing ? draft : props.dashboard;
+    if (!editing) setDraft(props.layout);
+  }, [editing, props.layout]);
+  const shown = editing ? draft : props.layout;
 
   const [dialog, setDialog] = useState<{ card?: Card } | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -106,6 +108,8 @@ export function DashboardView(props: Props) {
         ? t("tile.weather")
         : c.type === "calendar"
           ? t("tile.calendar")
+        : c.type === "grafana"
+          ? c.title || "Grafana"
       : c.type === "group"
         ? c.title || t("tile.group")
         : c.title || byId[c.deviceId ?? ""]?.name || t("tile.missingDevice");
@@ -118,6 +122,8 @@ export function DashboardView(props: Props) {
         return <WeatherTile refreshKey={props.weatherVersion} />;
       case "calendar":
         return <CalendarTile refreshKey={props.calendarVersion} />;
+      case "grafana":
+        return <GrafanaTile card={card} />;
       case "group":
         return (
           <GroupTile card={card} devices={byId} onPatch={props.onPatch} onError={props.onError} preview={preview} />
@@ -174,7 +180,7 @@ export function DashboardView(props: Props) {
               +
             </button>
           </div>
-          <button type="button" className="btn" onClick={() => setDraft(defaultDashboard(devices, cols))}>
+          <button type="button" className="btn" onClick={() => setDraft(defaultLayout(devices, cols))}>
             {t("dashboard.reset")}
           </button>
           <span className="edit-bar-spacer" />
@@ -207,7 +213,7 @@ export function DashboardView(props: Props) {
                       key={card.id}
                       id={card.id}
                       name={cardName(card)}
-                      editable={card.type === "device" || card.type === "group"}
+                      editable={card.type === "device" || card.type === "group" || card.type === "grafana"}
                       onEdit={() => setDialog({ card })}
                       onRemove={() => setDraft((d) => removeCard(d, card.id))}
                     >

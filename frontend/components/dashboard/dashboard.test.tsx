@@ -1,7 +1,7 @@
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Device } from "@/lib/api";
-import type { Dashboard } from "@/lib/dashboard";
+import type { Layout } from "@/lib/dashboard";
 import { ClockTile } from "@/components/tiles/ClockTile";
 import { DeviceTile } from "@/components/tiles/DeviceTile";
 import { GroupTile } from "@/components/tiles/GroupTile";
@@ -98,8 +98,7 @@ describe("ClockTile", () => {
 });
 
 describe("DashboardView", () => {
-  const dashboard: Dashboard = {
-    version: 1,
+  const dashboard: Layout = {
     columns: [
       { id: "c1", cards: [{ id: "clock", type: "clock" }, { id: "d1", type: "device", deviceId: "0x01" }] },
       { id: "c2", cards: [{ id: "d2", type: "device", deviceId: "0x02" }] },
@@ -107,13 +106,13 @@ describe("DashboardView", () => {
   };
   const devices = [k1, k2];
 
-  const saveMock = () => vi.fn<(d: Dashboard) => Promise<void>>(() => Promise.resolve());
+  const saveMock = () => vi.fn<(d: Layout) => Promise<void>>(() => Promise.resolve());
 
   function renderView(onSave = saveMock()) {
     const onCancel = vi.fn();
     render(
       <DashboardView
-        dashboard={dashboard}
+        layout={dashboard}
         devices={devices}
         editing
         onSave={onSave}
@@ -200,7 +199,7 @@ describe("DashboardView", () => {
   it("does not show edit controls outside edit mode", () => {
     render(
       <DashboardView
-        dashboard={dashboard}
+        layout={dashboard}
         devices={devices}
         editing={false}
         onSave={saveMock()}

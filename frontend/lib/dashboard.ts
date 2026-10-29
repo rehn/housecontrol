@@ -1,7 +1,9 @@
-// Dashboard layout model + pure helpers. Mirrors backend/internal/dashboard.
+// Dashboard model + pure helpers. Mirrors backend/internal/dashboard.
+// A Dashboard is a list of tabs; a "cards" tab holds a Layout (columns of
+// cards), a "grafana" tab shows a whole Grafana dashboard.
 import type { Device } from "./api";
 
-export type CardType = "clock" | "device" | "group" | "weather" | "calendar";
+export type CardType = "clock" | "device" | "group" | "weather" | "calendar" | "grafana";
 
 export interface Card {
   id: string;
@@ -9,6 +11,8 @@ export interface Card {
   title?: string;
   deviceId?: string; // device card
   deviceIds?: string[]; // group card
+  url?: string; // grafana card: single-panel embed link
+  height?: number; // grafana card, px
 }
 
 export interface Column {
@@ -16,10 +20,28 @@ export interface Column {
   cards: Card[];
 }
 
-export interface Dashboard {
-  version: number;
+/** One page of cards. */
+export interface Layout {
   columns: Column[];
 }
+
+export type TabKind = "cards" | "grafana";
+
+export interface Tab {
+  id: string;
+  title?: string; // empty = "Home" / "Grafana"
+  kind: TabKind;
+  columns?: Column[]; // cards
+  url?: string; // grafana
+}
+
+export interface Dashboard {
+  version: number;
+  tabs: Tab[];
+}
+
+export const MAX_TABS = 12;
+export const GRAFANA_HEIGHT = 300;
 
 export const MIN_COLUMNS = 1;
 export const MAX_COLUMNS = 6;
@@ -32,9 +54,8 @@ export function newId(prefix = "card"): string {
 const controllable = (d: Device) => d.kind === "light" || d.kind === "switch";
 
 /** Layout used until the user saves their own: clock + every light/outlet. */
-export function defaultDashboard(devices: Device[], columns = 3): Dashboard {
-  let d: Dashboard = {
-    version: 1,
+export function defaultLayout(devices: Device[], columns = 3): Layout {
+  let d: Layout = {
     columns: Array.from({ length: columns }, () => ({ id: newId("col"), cards: [] })),
   };
   d = addCard(d, { id: newId(), type: "clock" }, d.columns[0].id);
@@ -45,7 +66,7 @@ export function defaultDashboard(devices: Device[], columns = 3): Dashboard {
   return d;
 }
 
-function locate(d: Dashboard, cardId: string): [number, number] | null {
+function locate(d: Layout, cardId: string): [number, number] | null {
   for (let c = 0; c < d.columns.length; c++) {
     const i = d.columns[c].cards.findIndex((x) => x.id === cardId);
     if (i >= 0) return [c, i];
@@ -53,13 +74,13 @@ function locate(d: Dashboard, cardId: string): [number, number] | null {
   return null;
 }
 
-const cloneCols = (d: Dashboard) => d.columns.map((c) => ({ ...c, cards: [...c.cards] }));
+const cloneCols = (d: Layout) => d.columns.map((c) => ({ ...c, cards: [...c.cards] }));
 
 /**
  * Move card `activeId` onto `overId`, which is either another card (the
  * moved card takes its place) or a column id (appended to that column).
  */
-export function moveCard(d: Dashboard, activeId: string, overId: string): Dashboard {
+export function moveCard<T extends Layout>(d: T, activeId: string, overId: string): T {
   const from = locate(d, activeId);
   if (!from || activeId === overId) return d;
   const columns = cloneCols(d);
@@ -80,7 +101,7 @@ export function moveCard(d: Dashboard, activeId: string, overId: string): Dashbo
 }
 
 /** Add a card to `columnId`, or to the column with the fewest cards. */
-export function addCard(d: Dashboard, card: Card, columnId?: string): Dashboard {
+export function addCard<T extends Layout>(d: T, card: Card, columnId?: string): T {
   const columns = cloneCols(d);
   let target = columns.findIndex((c) => c.id === columnId);
   if (target < 0) {
@@ -93,26 +114,26 @@ export function addCard(d: Dashboard, card: Card, columnId?: string): Dashboard 
   return { ...d, columns };
 }
 
-export function updateCard(d: Dashboard, card: Card): Dashboard {
+export function updateCard<T extends Layout>(d: T, card: Card): T {
   return {
     ...d,
     columns: d.columns.map((c) => ({ ...c, cards: c.cards.map((x) => (x.id === card.id ? card : x)) })),
   };
 }
 
-export function removeCard(d: Dashboard, cardId: string): Dashboard {
+export function removeCard<T extends Layout>(d: T, cardId: string): T {
   return { ...d, columns: d.columns.map((c) => ({ ...c, cards: c.cards.filter((x) => x.id !== cardId) })) };
 }
 
 /** Device ids that already have their own device card. */
-export function usedDeviceIds(d: Dashboard): Set<string> {
+export function usedDeviceIds(d: Layout): Set<string> {
   const s = new Set<string>();
   for (const c of d.columns) for (const x of c.cards) if (x.type === "device" && x.deviceId) s.add(x.deviceId);
   return s;
 }
 
 /** Change the number of columns; cards of removed columns move to the last one kept. */
-export function setColumnCount(d: Dashboard, n: number): Dashboard {
+export function setColumnCount<T extends Layout>(d: T, n: number): T {
   n = Math.max(MIN_COLUMNS, Math.min(MAX_COLUMNS, Math.round(n)));
   const columns = cloneCols(d);
   while (columns.length < n) columns.push({ id: newId("col"), cards: [] });
@@ -121,6 +142,55 @@ export function setColumnCount(d: Dashboard, n: number): Dashboard {
     for (const col of removed) columns[n - 1].cards.push(...col.cards);
   }
   return { ...d, columns };
+}
+
+// --- tabs --------------------------------------------------------------------
+
+/** Until something is saved: one Home tab with the default cards. */
+export function defaultTabs(devices: Device[]): Dashboard {
+  return { version: 2, tabs: [{ id: "home", kind: "cards", columns: defaultLayout(devices).columns }] };
+}
+
+/** A layout saved before tabs existed ({columns}) becomes one Home tab. */
+export function upgradeDashboard(d: Dashboard): Dashboard {
+  const old = d as Dashboard & { columns?: Column[] };
+  if ((!old.tabs || old.tabs.length === 0) && old.columns) {
+    return { version: 2, tabs: [{ id: "home", kind: "cards", columns: old.columns }] };
+  }
+  return d;
+}
+
+/** The cards of a cards tab (at least one column). */
+export function tabLayout(tab: Tab): Layout {
+  return { columns: tab.columns && tab.columns.length > 0 ? tab.columns : [{ id: newId("col"), cards: [] }] };
+}
+
+export function setTabLayout(d: Dashboard, tabId: string, layout: Layout): Dashboard {
+  return { ...d, tabs: d.tabs.map((t) => (t.id === tabId ? { ...t, columns: layout.columns } : t)) };
+}
+
+export function addTab(d: Dashboard, tab: Tab): Dashboard {
+  return { ...d, tabs: [...d.tabs, tab] };
+}
+
+export function updateTab(d: Dashboard, tab: Tab): Dashboard {
+  return { ...d, tabs: d.tabs.map((t) => (t.id === tab.id ? tab : t)) };
+}
+
+/** The last tab can't be removed. */
+export function removeTab(d: Dashboard, tabId: string): Dashboard {
+  if (d.tabs.length <= 1) return d;
+  return { ...d, tabs: d.tabs.filter((t) => t.id !== tabId) };
+}
+
+/** Move a tab one step left (-1) or right (+1). */
+export function moveTab(d: Dashboard, tabId: string, step: -1 | 1): Dashboard {
+  const i = d.tabs.findIndex((t) => t.id === tabId);
+  const j = i + step;
+  if (i < 0 || j < 0 || j >= d.tabs.length) return d;
+  const tabs = [...d.tabs];
+  [tabs[i], tabs[j]] = [tabs[j], tabs[i]];
+  return { ...d, tabs };
 }
 
 export interface GroupSummary {

@@ -32,3 +32,11 @@ export function applyTheme(theme: Theme): void {
 
 /** Inlined in <head> so the saved theme is in place before the first paint. */
 export const themeScript = `try{var t=localStorage.getItem(${JSON.stringify(THEME_KEY)});if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}`;
+
+/** The look in use right now: the choice on this device, else the device's own setting. */
+export function effectiveTheme(): "light" | "dark" {
+  if (typeof document === "undefined") return "light";
+  const t = document.documentElement.getAttribute("data-theme");
+  if (t === "light" || t === "dark") return t;
+  return typeof window !== "undefined" && window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}

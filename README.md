@@ -47,6 +47,35 @@ Calendar's "secret address in iCal format", iCloud, Outlook, club schedules…).
 Recurring events, exceptions, moved/cancelled occurrences, all-day events and
 time zones (incl. Outlook's Windows names) are handled by `internal/calendar`.
 
+### Tabs and Grafana
+
+The home page can have several tabs (when logged in: **Edit** → **+ Add tab**,
+the pencil next to the tabs renames, moves or removes one). A tab is either a
+page of cards or a whole Grafana dashboard; single Grafana panels can also be
+added as cards (**Add card → Grafana panel**, paste the panel's Share → Embed
+link or iframe code).
+
+Grafana is shown in iframes, so Grafana has to allow it. In `grafana.ini`
+(or the matching `GF_…` env vars / Helm values):
+
+```ini
+[security]
+allow_embedding = true
+```
+
+When Grafana needs a login, the tablet must be logged in to Grafana in the
+same browser, and its cookie must be sent inside the iframe:
+
+- **Same site** (recommended), e.g. `housecontrol.hemma.lan` and
+  `grafana.hemma.lan` behind the same Gateway: works with Grafana's default
+  `cookie_samesite = lax`. Open Grafana once in a normal tab and log in.
+- **Different sites or plain IP addresses**: set `cookie_samesite = none` and
+  `cookie_secure = true` under `[security]`, which requires Grafana on HTTPS.
+- Or enable anonymous read access (`[auth.anonymous] enabled = true`, role Viewer).
+
+Whole dashboards are shown in kiosk mode (`&kiosk`), and both dashboards and
+panels follow the app's light/dark choice (`&theme=`) unless the link sets them.
+
 ### Login
 
 Anyone who opens the app can use it: see the home page, weather and calendar,
@@ -156,6 +185,7 @@ or `ws(s)://…`. A missing scheme or port is filled in automatically.
 | `POST /api/auth/login`, `POST /api/auth/logout` | `{"username","password"}` → session cookie `hc_session` (30 days) |
 | `GET /api/devices` | devices with capabilities + state |
 | `POST /api/devices/{ieee}/set` | `{"state":"ON"}`, `{"brightness":120}`, `{"color_temp":370}`, `transition`, `color` |
+| `GET /api/dashboard`, `PUT …` | tabs (`kind` `cards` with columns of cards, or `grafana` with a `url`); older single-page layouts are served as one `home` tab |
 | `GET /api/settings/mqtt` | current broker settings + status (never returns the password) |
 | `PUT /api/settings/mqtt` | save + reconnect. `password` omitted = keep, `""` = remove |
 | `POST /api/settings/mqtt/test` | try a connection without changing anything |

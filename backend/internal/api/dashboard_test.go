@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"housecontrol/internal/dashboard"
 	"housecontrol/internal/devices"
 )
 
@@ -37,13 +38,15 @@ func TestDashboardSaveLoadAndBroadcast(t *testing.T) {
 
 	_, v = do(t, "GET", e.srv.URL+"/api/dashboard", "")
 	d, _ := v["dashboard"].(map[string]any)
-	cols, _ := d["columns"].([]any)
-	if len(cols) != 2 {
+	tabs, _ := d["tabs"].([]any)
+	tab, _ := tabs[0].(map[string]any)
+	cols, _ := tab["columns"].([]any)
+	if len(tabs) != 1 || len(cols) != 2 || d["version"] != float64(2) {
 		t.Fatalf("reloaded dashboard: %v", v)
 	}
 
 	saved, err := e.store.LoadDashboard()
-	if err != nil || saved == nil || saved.Columns[1].Cards[0].Title != "Köket" {
+	if err != nil || saved == nil || saved.Tabs[0].Columns[1].Cards[0].Title != "Köket" {
 		t.Fatalf("persisted: %+v %v", saved, err)
 	}
 
@@ -126,5 +129,38 @@ func TestSetManyWhenDisconnected(t *testing.T) {
 	code, v := do(t, "POST", e.srv.URL+"/api/devices/set-many", `{"ids":["0x01"],"payload":{"state":"ON"}}`)
 	if code != 503 || !strings.Contains(v["error"].(string), "not connected") {
 		t.Fatalf("code %d %v", code, v)
+	}
+}
+
+func TestOldSavedLayoutIsServedAsTabs(t *testing.T) {
+	e := newEnv(t)
+	// what an earlier version saved: one page of columns
+	if err := e.store.SaveDashboard(dashboard.Dashboard{Version: 1, Columns: []dashboard.Column{
+		{ID: "c1", Cards: []dashboard.Card{{ID: "a", Type: "clock"}}},
+	}}); err != nil {
+		t.Fatal(err)
+	}
+	_, v := do(t, "GET", e.srv.URL+"/api/dashboard", "")
+	d, _ := v["dashboard"].(map[string]any)
+	tabs, _ := d["tabs"].([]any)
+	if len(tabs) != 1 || d["columns"] != nil {
+		t.Fatalf("%v", v)
+	}
+	if tab := tabs[0].(map[string]any); tab["id"] != "home" || tab["kind"] != "cards" {
+		t.Fatalf("%v", tab)
+	}
+}
+
+func TestDashboardWithGrafana(t *testing.T) {
+	e := newEnv(t)
+	code, v := do(t, "PUT", e.srv.URL+"/api/dashboard", `{"version":2,"tabs":[
+		{"id":"home","kind":"cards","columns":[{"id":"c","cards":[{"id":"g","type":"grafana","url":"https://grafana.lan/d-solo/x/y?panelId=2"}]}]},
+		{"id":"el","title":"El","kind":"grafana","url":"https://grafana.lan/d/abc/el"}]}`)
+	if code != 200 {
+		t.Fatalf("%d %v", code, v)
+	}
+	saved, _ := e.store.LoadDashboard()
+	if saved.Tabs[1].URL != "https://grafana.lan/d/abc/el" || saved.Tabs[0].Columns[0].Cards[0].Height != 300 {
+		t.Fatalf("%+v", saved)
 	}
 }

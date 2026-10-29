@@ -2,14 +2,14 @@ import { describe, expect, it } from "vitest";
 import type { Device } from "./api";
 import {
   addCard,
-  Dashboard,
-  defaultDashboard,
+  defaultLayout,
   groupSummary,
   moveCard,
   removeCard,
   setColumnCount,
   updateCard,
   usedDeviceIds,
+  type Layout,
 } from "./dashboard";
 
 function dev(id: string, name: string, kind: Device["kind"], state: Record<string, unknown> = {}): Device {
@@ -38,19 +38,18 @@ const devices = [
   dev("0x04", "Motion sensor", "other"),
 ];
 
-const layout = (): Dashboard => ({
-  version: 1,
+const layout = (): Layout => ({
   columns: [
     { id: "c1", cards: [{ id: "a", type: "clock" }, { id: "b", type: "device", deviceId: "0x01" }] },
     { id: "c2", cards: [{ id: "c", type: "device", deviceId: "0x02" }] },
   ],
 });
 
-const ids = (d: Dashboard) => d.columns.map((c) => c.cards.map((x) => x.id));
+const ids = (d: Layout) => d.columns.map((c) => c.cards.map((x) => x.id));
 
-describe("defaultDashboard", () => {
+describe("defaultLayout", () => {
   it("starts with a clock and one card per light/outlet, spread over 3 columns", () => {
-    const d = defaultDashboard(devices);
+    const d = defaultLayout(devices);
     expect(d.columns).toHaveLength(3);
     const cards = d.columns.flatMap((c) => c.cards);
     expect(cards[0]).toMatchObject({ type: "clock" });
@@ -63,12 +62,12 @@ describe("defaultDashboard", () => {
   });
 
   it("works with no devices", () => {
-    const d = defaultDashboard([]);
+    const d = defaultLayout([]);
     expect(d.columns.flatMap((c) => c.cards)).toHaveLength(1);
   });
 
   it("gives every card a unique id", () => {
-    const all = defaultDashboard(devices).columns.flatMap((c) => c.cards.map((x) => x.id));
+    const all = defaultLayout(devices).columns.flatMap((c) => c.cards.map((x) => x.id));
     expect(new Set(all).size).toBe(all.length);
   });
 });
