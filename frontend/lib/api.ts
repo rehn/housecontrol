@@ -1,7 +1,7 @@
 import type { Dashboard } from "./dashboard";
 import type { Schedule, SchedulesView } from "./schedules";
 
-export type Kind = "light" | "switch" | "other";
+export type Kind = "light" | "switch" | "remote" | "other";
 
 export interface Capabilities {
   onOff: boolean;
@@ -13,6 +13,8 @@ export interface Capabilities {
   colorTempMax?: number;
   color: boolean;
   power: boolean;
+  /** a remote's button actions as zigbee2mqtt reports them */
+  actions?: string[];
 }
 
 export interface Device {
@@ -64,7 +66,8 @@ export type ServerEvent =
   | { type: "dashboard"; dashboard?: Dashboard | null }
   | { type: "ui"; ui?: UISettings }
   | { type: "weather" } // weather settings changed: weather cards reload
-  | { type: "calendar" }; // calendar settings changed: calendar cards reload
+  | { type: "calendar" } // calendar settings changed: calendar cards reload
+  | { type: "remote"; id: string; button: string; press: RemoteEvent }; // a remote's button was pressed
 
 export interface CalendarEvent {
   title: string;
@@ -213,13 +216,29 @@ export const saveSchedules = (schedules: Schedule[]) =>
  * `password`, or readable JSON when `password` is null.
  */
 export async function downloadBackup(password: string | null): Promise<{ blob: Blob; filename: string }> {
+  return fetchFile(
+    "POST",
+    "/api/settings/backup",
+    password === null ? { protect: false } : { protect: true, password },
+    "housecontrol-backup.hcbackup",
+  );
+}
+
+/** A file download from the API (with the name from Content-Disposition). */
+async function fetchFile(
+  method: string,
+  path: string,
+  body: unknown,
+  fallbackName: string,
+): Promise<{ blob: Blob; filename: string }> {
   let res: Response;
   try {
-    res = await fetch(`${API_BASE}/api/settings/backup`, {
-      method: "POST",
+    res = await fetch(`${API_BASE}${path}`, {
+      method,
       credentials: "include",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(password === null ? { protect: false } : { protect: true, password }),
+      ...(body === undefined
+        ? {}
+        : { headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }),
     });
   } catch {
     throw new ApiError("cannot reach the housecontrol backend", "backend_unreachable");
@@ -229,7 +248,7 @@ export async function downloadBackup(password: string | null): Promise<{ blob: B
     if (res.status === 401 && typeof window !== "undefined") window.dispatchEvent(new Event(UNAUTHORIZED_EVENT));
     throw new ApiError(data.error ?? `request failed (${res.status})`, data.code, res.status);
   }
-  const name = /filename="([^"]+)"/.exec(res.headers.get("Content-Disposition") ?? "")?.[1] ?? "housecontrol-backup.hcbackup";
+  const name = /filename="([^"]+)"/.exec(res.headers.get("Content-Disposition") ?? "")?.[1] ?? fallbackName;
   return { blob: await res.blob(), filename: name };
 }
 
@@ -240,6 +259,76 @@ export async function restoreBackup(file: Blob, password: string): Promise<{ exp
   for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
   return request("POST", "/api/settings/restore", { password, data: btoa(bin) });
 }
+
+/** When backups are made automatically, and how many are kept. */
+export interface AutoBackupSettings {
+  enabled: boolean;
+  /** HH:MM, every day */
+  time: string;
+  keep: number;
+}
+
+export interface StoredBackup {
+  name: string;
+  size: number;
+  created: string;
+}
+
+export interface AutoBackupView extends AutoBackupSettings {
+  /** false: no backup folder on the server (BACKUP_DIR) */
+  available: boolean;
+  dir?: string;
+  encrypted: boolean;
+  next?: string;
+  lastRun?: string;
+  lastError?: string;
+  /** newest first */
+  backups: StoredBackup[];
+}
+
+export const getAutoBackup = () => request<AutoBackupView>("GET", "/api/settings/autobackup");
+export const saveAutoBackup = (s: AutoBackupSettings) => request<AutoBackupView>("PUT", "/api/settings/autobackup", s);
+export const runAutoBackup = () => request<AutoBackupView>("POST", "/api/settings/autobackup/run");
+export const downloadStoredBackup = (name: string) =>
+  fetchFile("GET", `/api/settings/autobackup/files/${encodeURIComponent(name)}`, undefined, name);
+export const restoreStoredBackup = (name: string) =>
+  request<{ exported?: string }>("POST", `/api/settings/autobackup/files/${encodeURIComponent(name)}/restore`, {});
+
+/** Kinds of press an action can be chosen for. */
+export type RemoteEvent = "press" | "double" | "hold";
+export type RemoteAction = "on" | "off" | "toggle" | "brighter" | "darker" | "dim_up" | "dim_down" | "set";
+
+/** What one kind of press on one button does. */
+export interface RemoteBinding {
+  remote: string;
+  button: string;
+  event: RemoteEvent;
+  action: RemoteAction;
+  /** "device:<id>" or "group:<group card id>" */
+  targets: string[];
+  /** set: % */
+  brightness?: number;
+  /** set: mired */
+  colorTemp?: number;
+}
+
+export interface RemoteInfo {
+  id: string;
+  name: string;
+  vendor?: string;
+  model?: string;
+  description?: string;
+  availability: string;
+  buttons: { id: string; events: RemoteEvent[] }[];
+}
+
+export interface RemotesView {
+  remotes: RemoteInfo[];
+  bindings: RemoteBinding[];
+}
+
+export const getRemotes = () => request<RemotesView>("GET", "/api/settings/remotes");
+export const saveRemotes = (bindings: RemoteBinding[]) => request<RemotesView>("PUT", "/api/settings/remotes", { bindings });
 
 /** Login state as the server sees it. `required` is false when no password is set. */
 export interface AuthStatus {

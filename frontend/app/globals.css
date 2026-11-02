@@ -543,6 +543,41 @@ main.settings-page { max-width: 1100px; }
 .backup-box h3 { margin: 0; font-size: 1.05rem; }
 .backup-box .field input { min-height: 48px; font-size: 1rem; }
 .backup-box input[type="file"] { padding: 10px; }
+.backup-box + .backup-form { margin-top: 16px; }
+.backup-box h4 { margin: 8px 0 0; font-size: 0.95rem; }
+.autobackup-row { grid-template-columns: minmax(0, 200px) minmax(0, 260px); align-items: end; }
+.input-with-unit { display: flex; align-items: center; gap: 8px; }
+.input-with-unit input { width: 96px; }
+.stored-backups { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.stored-backups li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0; border-top: 1px solid var(--border); flex-wrap: wrap; }
+.stored-backups li:first-child { border-top: 0; }
+.stored-backup-info { display: flex; flex-direction: column; gap: 2px; }
+.stored-backup-actions { display: flex; gap: 8px; }
+.stored-backup-actions .btn { min-height: 44px; }
+
+/* Settings → Remotes */
+.remotes-form { display: flex; flex-direction: column; gap: 16px; }
+.remote-box { display: flex; flex-direction: column; gap: 8px; padding: 14px; border: 1px solid var(--border); border-radius: 14px; }
+.remote-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.remote-head h3 { margin: 0; font-size: 1.05rem; }
+.remote-last { margin: 0; transition: color 0.3s; }
+.remote-last.fresh { color: var(--accent); font-weight: 600; }
+.remote-button { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--border); transition: border-color 0.2s, box-shadow 0.2s; }
+.remote-button.pressed { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); background: var(--accent-soft); }
+.remote-button-name { font-weight: 600; }
+.remote-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.remote-event { min-width: 110px; color: var(--muted); }
+.remote-row select, .remote-set .field select {
+  min-height: 48px; font: inherit; font-size: 1rem; padding: 0 10px; border-radius: 8px;
+  border: 1px solid var(--border); background: var(--bg); color: var(--text);
+}
+.remote-row > select { width: 280px; max-width: 100%; }
+.target-btn { min-height: 48px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.target-btn.warn { border-color: var(--warn); }
+.remote-set { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; padding-left: 120px; }
+@media (max-width: 700px) { .remote-set { padding-left: 0; } }
+.remote-set .field input { width: 90px; min-height: 48px; }
+.remote-set .field select { width: 190px; }
 
 /* light/group card size, per device (Settings → Appearance) */
 .sub-heading { margin: 18px 0 2px; font-size: 1rem; }

@@ -239,7 +239,8 @@
     "cardSizeNormal": "Normal",
     "cardSizeCompact": "Compact",
     "cardSizeMini": "Mini",
-    "theme": "Light or dark"
+    "theme": "Light or dark",
+    "remotes": "Remotes"
   },
   "auth": {
     "title": "Log in",
@@ -348,6 +349,77 @@
     "backup_not_backup": "This is not a housecontrol backup file.",
     "backup_invalid": "The backup contains settings that can't be used.",
     "backup_weak_password": "The password must be at least 8 characters.",
-    "backup_needs_password": "This backup is protected with a password – enter it."
+    "backup_needs_password": "This backup is protected with a password – enter it.",
+    "backup_no_folder": "There is no backup folder on the server (BACKUP_DIR)."
+  },
+  "autoBackup": {
+    "title": "Automatic backups",
+    "noFolder": "Automatic backups need a folder on the server to save in: set BACKUP_DIR. In Kubernetes, set backup.enabled: true in the Helm values – the backups then get a volume of their own.",
+    "folder": "Saved in {dir} on the server.",
+    "encrypted": "Encrypted with BACKUP_PASSWORD – keep that password somewhere safe, it can't be recovered.",
+    "notEncrypted": "Not encrypted: anyone who can read the folder can read the MQTT password and your calendars' secret links. Set BACKUP_PASSWORD to encrypt them.",
+    "daily": "Make a backup every day",
+    "time": "Time",
+    "keep": "Keep the newest",
+    "keepUnit": "backups",
+    "keepHint": "Older backups are deleted.",
+    "keepRange": "Choose 1–365.",
+    "next": "Next backup: {date}",
+    "lastError": "The last automatic backup failed: {error}",
+    "runNow": "Back up now",
+    "running": "Backing up…",
+    "stored": "Stored backups",
+    "none": "No backups yet.",
+    "download": "Download"
+  },
+  "remotes": {
+    "hint": "Choose what each button does – with a short press, a double press or while it is held. The server carries it out, so nothing needs to be open.",
+    "none": "No remotes found. Pair them in zigbee2mqtt and they show up here.",
+    "pressHint": "Press a button on the remote and it is highlighted here.",
+    "lastPress": "Last press: {button} – {event}",
+    "offline": "offline",
+    "events": {
+      "press": "short press",
+      "double": "double press",
+      "hold": "hold"
+    },
+    "actions": {
+      "none": "Nothing",
+      "on": "Turn on",
+      "off": "Turn off",
+      "toggle": "Toggle on/off",
+      "brighter": "Brighter (one step)",
+      "darker": "Darker (one step)",
+      "dim_up": "Dim up while held",
+      "dim_down": "Dim down while held",
+      "set": "Set light"
+    },
+    "buttons": {
+      "on": "On",
+      "off": "Off",
+      "toggle": "Middle button",
+      "up": "Up",
+      "down": "Down",
+      "brightness_up": "Brighter",
+      "brightness_down": "Darker",
+      "arrow_left": "Left arrow",
+      "arrow_right": "Right arrow",
+      "button": "Button",
+      "number": "Button {n}"
+    },
+    "chooseTargets": "Choose what to control",
+    "targetsTitle": "What should it control?",
+    "groups": "Groups on the home page",
+    "noGroups": "No groups yet – make one on the home page to switch several lights together.",
+    "devices": "Lights and outlets",
+    "done": "Done",
+    "manyTargets": "{first} and {count} more",
+    "missingGroup": "(removed group)",
+    "missingDevice": "(unknown device)",
+    "brightness": "Brightness (%)",
+    "colorTemp": "Colour temperature",
+    "colorTempKeep": "Leave as it is",
+    "kelvin": "{k} K",
+    "saveFailed": "Couldn't save: {error}"
   }
 }

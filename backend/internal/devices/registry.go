@@ -16,6 +16,7 @@ type Kind string
 const (
 	KindLight  Kind = "light"
 	KindSwitch Kind = "switch" // smart plugs / outlets / relays
+	KindRemote Kind = "remote" // buttons that report "action" (remotes, wall switches)
 	KindOther  Kind = "other"
 )
 
@@ -30,6 +31,8 @@ type Capabilities struct {
 	ColorTempMax  int    `json:"colorTempMax,omitempty"`
 	Color         bool   `json:"color"`
 	Power         bool   `json:"power"` // reports power (W)
+	// Actions a remote reports when its buttons are pressed (e.g. "on", "arrow_left_hold").
+	Actions []string `json:"actions,omitempty"`
 }
 
 type Device struct {
@@ -66,6 +69,11 @@ type Event struct {
 	Dashboard *dashboard.Dashboard `json:"dashboard,omitempty"`
 	// UI is set on "ui" events (language etc.).
 	UI *settings.UI `json:"ui,omitempty"`
+	// Action is set on "action" events: a remote's button was pressed.
+	Action string `json:"action,omitempty"`
+	// Button and Press are set on "remote" events (what the press meant).
+	Button string `json:"button,omitempty"`
+	Press  string `json:"press,omitempty"`
 }
 
 type Registry struct {
@@ -117,8 +125,11 @@ func (r *Registry) SetDevices(list []Device) {
 	r.publish(Event{Type: "devices", Devices: r.List()})
 }
 
-// MergeState merges a state payload published on zigbee2mqtt/<name>.
+// MergeState merges a state payload published on zigbee2mqtt/<name>. A
+// remote's "action" is not state: it is sent on as an "action" event.
 func (r *Registry) MergeState(name string, payload map[string]any) {
+	action, _ := payload["action"].(string)
+	delete(payload, "action")
 	r.mu.Lock()
 	st := r.states[name]
 	if st == nil {
@@ -133,6 +144,9 @@ func (r *Registry) MergeState(name string, payload map[string]any) {
 	r.mu.Unlock()
 	if id != "" {
 		r.publish(Event{Type: "state", ID: id, State: snapshot})
+		if action != "" {
+			r.publish(Event{Type: "action", ID: id, Action: action})
+		}
 	}
 }
 

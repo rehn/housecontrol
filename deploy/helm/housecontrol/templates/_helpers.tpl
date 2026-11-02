@@ -48,6 +48,9 @@ ADMIN_PASSWORD: {{ .Values.auth.password | quote }}
 {{- if and .Values.mqtt.password (not .Values.mqtt.existingSecret) }}
 MQTT_PASSWORD: {{ .Values.mqtt.password | quote }}
 {{- end }}
+{{- if and .Values.backup.enabled .Values.backup.password (not .Values.backup.existingSecret) }}
+BACKUP_PASSWORD: {{ .Values.backup.password | quote }}
+{{- end }}
 {{- end }}
 
 {{- define "housecontrol.trustProxy" -}}
@@ -60,4 +63,8 @@ MQTT_PASSWORD: {{ .Values.mqtt.password | quote }}
 
 {{- define "housecontrol.claimName" -}}
 {{- .Values.persistence.existingClaim | default (include "housecontrol.fullname" .) }}
+{{- end }}
+
+{{- define "housecontrol.backupClaimName" -}}
+{{- .Values.backup.persistence.existingClaim | default (printf "%s-backups" (include "housecontrol.fullname" .)) }}
 {{- end }}

@@ -311,6 +311,9 @@ func (c *conn) onMessage(_ mqtt.Client, msg mqtt.Message) {
 		if err := json.Unmarshal(payload, &st); err != nil {
 			return // not a JSON state message
 		}
+		if msg.Retained() {
+			delete(st, "action") // an old button press: don't run it again
+		}
 		reg.MergeState(rest, st)
 	}
 }

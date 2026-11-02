@@ -51,6 +51,25 @@ persistence:
   annotations:
     helm.sh/resource-policy: keep
 
+# Automatic backups of all settings to their own volume, mounted at /backups.
+# When and how many are kept is set in the app: Settings → Backup.
+backup:
+  enabled: false
+  # Encrypts the backups (at least 8 characters). Empty = readable JSON files,
+  # which contain the MQTT password and calendar links. Prefer existingSecret:
+  #   kubectl create secret generic housecontrol-backup --from-literal=BACKUP_PASSWORD='...'
+  password: ""
+  existingSecret: ""
+  existingSecretKey: BACKUP_PASSWORD
+  persistence:
+    existingClaim: ""
+    storageClass: ""     # e.g. another storage class than the settings volume
+    accessModes: [ReadWriteOnce]
+    size: 1Gi
+    # keep: the backups survive `helm uninstall`
+    annotations:
+      helm.sh/resource-policy: keep
+
 service:
   type: ClusterIP    # or LoadBalancer / NodePort
   port: 80

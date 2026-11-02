@@ -7,6 +7,7 @@ services:
       - "8080:8080"
     volumes:
       - housecontrol-data:/data # settings saved from the UI survive restarts
+      # - housecontrol-backups:/backups # automatic backups (with BACKUP_DIR below)
     environment:
       LOG_LEVEL: info
       TZ: Europe/Stockholm # decides what "today" is in the weather forecast
@@ -14,6 +15,10 @@ services:
       # Put ADMIN_PASSWORD=... in a .env file next to this file.
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      # Optional: automatic daily backups (schedule and retention: Settings → Backup).
+      # Uncomment the backups volume above and below too. BACKUP_PASSWORD in .env encrypts them.
+      # BACKUP_DIR: /backups
+      # BACKUP_PASSWORD: ${BACKUP_PASSWORD:-}
       # Optional: preset the broker instead of entering it in the UI.
       # Settings saved in the UI take precedence over these.
       # MQTT_URL: tcp://192.168.1.201:1883
@@ -23,3 +28,4 @@ services:
 
 volumes:
   housecontrol-data:
+  # housecontrol-backups:

@@ -25,13 +25,15 @@ RUN go mod download
 COPY backend/ ./
 RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH \
     go build -trimpath -ldflags="-s -w -X main.version=$VERSION" -o /out/housecontrol ./cmd/housecontrol \
- && mkdir -p /out/data
+ && mkdir -p /out/data /out/backups
 
 # --- runtime ------------------------------------------------------------------
 FROM gcr.io/distroless/static-debian12:nonroot
 COPY --from=api /out/housecontrol /housecontrol
 COPY --from=web /web/out /web
 COPY --from=api --chown=65532:65532 /out/data /data
+# /backups: mount a volume here and set BACKUP_DIR=/backups for automatic backups
+COPY --from=api --chown=65532:65532 /out/backups /backups
 ENV HTTP_ADDR=:8080 \
     STATIC_DIR=/web \
     DATA_DIR=/data \

@@ -24,6 +24,7 @@ type expose struct {
 	Endpoint string   `json:"endpoint"`
 	ValueMin *float64 `json:"value_min"`
 	ValueMax *float64 `json:"value_max"`
+	Values   []string `json:"values"` // enum
 	Features []expose `json:"features"`
 }
 
@@ -87,7 +88,14 @@ func capabilities(exposes []expose) (Kind, Capabilities) {
 			if e.Name == "power" {
 				c.Power = true
 			}
+		case "enum":
+			if e.Property == "action" && len(e.Values) > 0 && c.Actions == nil {
+				c.Actions = e.Values
+			}
 		}
+	}
+	if kind == KindOther && c.Actions != nil {
+		kind = KindRemote
 	}
 	if c.StateProperty == "" && c.OnOff {
 		c.StateProperty = "state"

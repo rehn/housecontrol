@@ -7,8 +7,16 @@ import {
   getCalendarSettings,
   getSchedules,
   saveSchedules,
+  getRemotes,
+  saveRemotes,
+  type RemotesView,
   downloadBackup,
+  downloadStoredBackup,
+  getAutoBackup,
   restoreBackup,
+  restoreStoredBackup,
+  runAutoBackup,
+  saveAutoBackup,
   getWeatherSettings,
   locateByIP,
   lookupArea,
@@ -33,6 +41,8 @@ import { ThemePicker } from "@/components/settings/ThemePicker";
 import { CardSizePicker } from "@/components/settings/CardSizePicker";
 import { SettingsLayout } from "@/components/settings/SettingsLayout";
 import { ScheduleForm } from "@/components/settings/ScheduleForm";
+import { AutoBackupForm } from "@/components/settings/AutoBackupForm";
+import { RemotesForm, groupCards } from "@/components/settings/RemotesForm";
 import { BackupForm } from "@/components/settings/BackupForm";
 import type { SchedulesView } from "@/lib/schedules";
 import { useAuth } from "@/lib/auth";
@@ -80,11 +90,24 @@ export default function SettingsPage() {
             { id: "weather", label: t("settings.weather"), content: <WeatherSection /> },
             { id: "calendars", label: t("settings.calendars"), content: <CalendarSection /> },
             { id: "schedules", label: t("schedules.title"), content: <SchedulesSection /> },
+            { id: "remotes", label: t("settings.remotes"), content: <RemotesSection /> },
             { id: "mqtt", label: t("settings.mqttBroker"), content: <MqttSection liveStatus={mqtt} /> },
             {
               id: "backup",
               label: t("settings.backup"),
-              content: <BackupForm download={downloadBackup} restore={restoreBackup} onRestored={() => window.location.reload()} />,
+              content: (
+                <>
+                  <AutoBackupForm
+                    load={getAutoBackup}
+                    save={saveAutoBackup}
+                    run={runAutoBackup}
+                    download={downloadStoredBackup}
+                    restore={restoreStoredBackup}
+                    onRestored={() => window.location.reload()}
+                  />
+                  <BackupForm download={downloadBackup} restore={restoreBackup} onRestored={() => window.location.reload()} />
+                </>
+              ),
             },
             { id: "account", label: t("auth.account"), content: <AccountSection /> },
           ]}
@@ -231,6 +254,46 @@ function SchedulesSection() {
         </div>
       )}
       {view && <ScheduleForm initial={view} devices={devices} onSave={saveSchedules} />}
+    </>
+  );
+}
+
+function RemotesSection() {
+  const { t } = useI18n();
+  const { devices, dashboard, lastPress } = useLive();
+  const [view, setView] = useState<RemotesView | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const known = devices.filter((d) => d.kind === "remote").map((d) => d.id).sort().join(",");
+
+  const load = () => {
+    setError(null);
+    getRemotes()
+      .then(setView)
+      .catch((e) => setError(t("settings.loadFailed", { error: errorText(t, e) })));
+  };
+  // reload when a remote is paired or removed
+  useEffect(load, [known]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return (
+    <>
+      {error && (
+        <div className="banner bad">
+          <span>{error}</span>
+          <button type="button" className="btn" onClick={load}>
+            {t("common.retry")}
+          </button>
+        </div>
+      )}
+      {view && (
+        <RemotesForm
+          key={view.remotes.map((r) => r.id).join(",")}
+          initial={view}
+          devices={devices}
+          groups={groupCards(dashboard)}
+          lastPress={lastPress}
+          onSave={saveRemotes}
+        />
+      )}
     </>
   );
 }

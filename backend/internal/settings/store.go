@@ -12,6 +12,7 @@ import (
 
 	"housecontrol/internal/config"
 	"housecontrol/internal/dashboard"
+	"housecontrol/internal/remote"
 	"housecontrol/internal/schedule"
 )
 
@@ -27,6 +28,10 @@ type file struct {
 	Weather   *Weather             `json:"weather,omitempty"`
 	Calendars []Calendar           `json:"calendars,omitempty"`
 	Schedules []schedule.Schedule  `json:"schedules,omitempty"`
+	// AutoBackup: when backups are made automatically (they go to BACKUP_DIR).
+	AutoBackup *AutoBackup `json:"autoBackup,omitempty"`
+	// Remotes: what the buttons on zigbee2mqtt remotes do.
+	Remotes []remote.Binding `json:"remotes,omitempty"`
 }
 
 // Calendar is one iCal link shown on calendar cards. The URL often contains
@@ -210,6 +215,49 @@ func (s *Store) SaveSchedules(l []schedule.Schedule) error {
 		return err
 	}
 	f.Schedules = l
+	return s.write(f)
+}
+
+// LoadAutoBackup returns the automatic backup settings (defaults if none saved).
+func (s *Store) LoadAutoBackup() (AutoBackup, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	f, err := s.read()
+	if err != nil || f.AutoBackup == nil {
+		return DefaultAutoBackup(), err
+	}
+	return *f.AutoBackup, nil
+}
+
+func (s *Store) SaveAutoBackup(a AutoBackup) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	f, err := s.read()
+	if err != nil {
+		return err
+	}
+	f.AutoBackup = &a
+	return s.write(f)
+}
+
+func (s *Store) LoadRemotes() ([]remote.Binding, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	f, err := s.read()
+	if err != nil {
+		return nil, err
+	}
+	return f.Remotes, nil
+}
+
+func (s *Store) SaveRemotes(l []remote.Binding) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	f, err := s.read()
+	if err != nil {
+		return err
+	}
+	f.Remotes = l
 	return s.write(f)
 }
 

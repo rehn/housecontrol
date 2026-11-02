@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Device, MqttStatus, ServerEvent, wsUrl } from "./api";
+import { Device, MqttStatus, RemoteEvent, ServerEvent, wsUrl } from "./api";
 import type { Dashboard } from "./dashboard";
 
 export type ConnState = "connecting" | "open" | "closed";
@@ -32,6 +32,8 @@ export function useDevices() {
   const [uiLoaded, setUiLoaded] = useState(false); // the server has sent language/title
   const [weatherVersion, setWeatherVersion] = useState(0); // bumps when weather settings change
   const [calendarVersion, setCalendarVersion] = useState(0); // bumps when calendars change
+  // the latest remote button press (Settings → Remotes highlights it)
+  const [lastPress, setLastPress] = useState<{ remote: string; button: string; event: RemoteEvent; at: number } | null>(null);
   const retry = useRef(0);
 
   useEffect(() => {
@@ -72,6 +74,10 @@ export function useDevices() {
         }
         if (ev.type === "calendar") {
           setCalendarVersion((v) => v + 1);
+          return;
+        }
+        if (ev.type === "remote") {
+          setLastPress({ remote: ev.id, button: ev.button, event: ev.press, at: Date.now() });
           return;
         }
         if (ev.type === "ui") {
@@ -129,6 +135,7 @@ export function useDevices() {
     uiLoaded,
     weatherVersion,
     calendarVersion,
+    lastPress,
     devices: Object.values(devices),
     byId: devices,
     mqtt,

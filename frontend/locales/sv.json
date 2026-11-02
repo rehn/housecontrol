@@ -239,7 +239,8 @@
     "cardSizeNormal": "Normal",
     "cardSizeCompact": "Kompakt",
     "cardSizeMini": "Mini",
-    "theme": "Ljust eller mörkt"
+    "theme": "Ljust eller mörkt",
+    "remotes": "Fjärrkontroller"
   },
   "auth": {
     "title": "Logga in",
@@ -348,6 +349,77 @@
     "backup_not_backup": "Det här är ingen säkerhetskopia från housecontrol.",
     "backup_invalid": "Säkerhetskopian innehåller inställningar som inte går att använda.",
     "backup_weak_password": "Lösenordet måste ha minst 8 tecken.",
-    "backup_needs_password": "Säkerhetskopian är skyddad med lösenord – skriv in det."
+    "backup_needs_password": "Säkerhetskopian är skyddad med lösenord – skriv in det.",
+    "backup_no_folder": "Det finns ingen mapp för säkerhetskopior på servern (BACKUP_DIR)."
+  },
+  "autoBackup": {
+    "title": "Automatiska säkerhetskopior",
+    "noFolder": "Automatiska säkerhetskopior behöver en mapp på servern att spara i: sätt BACKUP_DIR. I Kubernetes sätter du backup.enabled: true i Helm-värdena – då får säkerhetskopiorna en egen volym.",
+    "folder": "Sparas i {dir} på servern.",
+    "encrypted": "Krypteras med BACKUP_PASSWORD – spara det lösenordet väl, det går inte att återskapa.",
+    "notEncrypted": "Inte krypterade: den som kan läsa mappen kan läsa MQTT-lösenordet och kalendrarnas hemliga länkar. Sätt BACKUP_PASSWORD för att kryptera dem.",
+    "daily": "Gör en säkerhetskopia varje dag",
+    "time": "Klockan",
+    "keep": "Behåll de senaste",
+    "keepUnit": "säkerhetskopiorna",
+    "keepHint": "Äldre säkerhetskopior tas bort.",
+    "keepRange": "Välj 1–365.",
+    "next": "Nästa säkerhetskopia: {date}",
+    "lastError": "Den senaste automatiska säkerhetskopian misslyckades: {error}",
+    "runNow": "Säkerhetskopiera nu",
+    "running": "Säkerhetskopierar…",
+    "stored": "Sparade säkerhetskopior",
+    "none": "Inga säkerhetskopior än.",
+    "download": "Ladda ner"
+  },
+  "remotes": {
+    "hint": "Välj vad varje knapp gör – med ett kort tryck, ett dubbeltryck eller medan den hålls in. Servern sköter det, så inget behöver vara öppet.",
+    "none": "Inga fjärrkontroller hittades. Para ihop dem i zigbee2mqtt så dyker de upp här.",
+    "pressHint": "Tryck på en knapp på fjärrkontrollen så markeras den här.",
+    "lastPress": "Senaste tryck: {button} – {event}",
+    "offline": "offline",
+    "events": {
+      "press": "kort tryck",
+      "double": "dubbeltryck",
+      "hold": "håll in"
+    },
+    "actions": {
+      "none": "Ingenting",
+      "on": "Tänd",
+      "off": "Släck",
+      "toggle": "Tänd/släck",
+      "brighter": "Ljusare (ett steg)",
+      "darker": "Mörkare (ett steg)",
+      "dim_up": "Dimra upp medan den hålls in",
+      "dim_down": "Dimra ner medan den hålls in",
+      "set": "Ställ in ljuset"
+    },
+    "buttons": {
+      "on": "På",
+      "off": "Av",
+      "toggle": "Mittknappen",
+      "up": "Upp",
+      "down": "Ner",
+      "brightness_up": "Ljusare",
+      "brightness_down": "Mörkare",
+      "arrow_left": "Vänsterpil",
+      "arrow_right": "Högerpil",
+      "button": "Knappen",
+      "number": "Knapp {n}"
+    },
+    "chooseTargets": "Välj vad som ska styras",
+    "targetsTitle": "Vad ska den styra?",
+    "groups": "Grupper på startsidan",
+    "noGroups": "Inga grupper än – skapa en på startsidan för att styra flera lampor tillsammans.",
+    "devices": "Lampor och uttag",
+    "done": "Klar",
+    "manyTargets": "{first} och {count} till",
+    "missingGroup": "(borttagen grupp)",
+    "missingDevice": "(okänd enhet)",
+    "brightness": "Ljusstyrka (%)",
+    "colorTemp": "Färgtemperatur",
+    "colorTempKeep": "Behåll som den är",
+    "kelvin": "{k} K",
+    "saveFailed": "Det gick inte att spara: {error}"
   }
 }

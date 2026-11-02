@@ -11,22 +11,14 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"housecontrol/internal/autobackup"
 	"housecontrol/internal/backup"
 	"housecontrol/internal/devices"
+	"housecontrol/internal/remote"
 	"housecontrol/internal/schedule"
 	"housecontrol/internal/settings"
 	"housecontrol/internal/weather"
 )
-
-const backupApp = "housecontrol"
-
-// backupFile is what a backup contains (before compression and encryption).
-type backupFile struct {
-	App      string            `json:"app"`
-	Version  string            `json:"version,omitempty"`
-	Exported time.Time         `json:"exported"`
-	Settings settings.Snapshot `json:"settings"`
-}
 
 // exportBackup sends all settings as a file: compressed and encrypted with a
 // password ({"protect": true, "password": "..."}), or as readable JSON
@@ -46,27 +38,11 @@ func (s *Server) exportBackup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	now := time.Now()
-	bf := backupFile{App: backupApp, Version: s.opts.Version, Exported: now, Settings: snap}
-	name := "housecontrol-backup-" + now.Format("2006-01-02")
-	w.Header().Set("Cache-Control", "no-store")
-	if !in.Protect {
-		plain, err := json.MarshalIndent(bf, "", "  ")
-		if err != nil {
-			writeErr(w, http.StatusInternalServerError, err.Error())
-			return
-		}
-		s.log.Info("backup exported", "protected", false)
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s.json"`, name))
-		w.Write(plain)
-		return
+	password := ""
+	if in.Protect {
+		password = in.Password
 	}
-	plain, err := json.Marshal(bf)
-	if err != nil {
-		writeErr(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-	sealed, err := backup.Seal(plain, in.Password)
+	data, err := autobackup.Encode(snap, s.opts.Version, now, password)
 	if errors.Is(err, backup.ErrWeakPassword) {
 		writeErrCode(w, http.StatusBadRequest, codeBackupWeakPassword, err.Error())
 		return
@@ -75,10 +51,17 @@ func (s *Server) exportBackup(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusInternalServerError, "could not create the backup: "+err.Error())
 		return
 	}
-	s.log.Info("backup exported", "protected", true)
-	w.Header().Set("Content-Type", "application/octet-stream")
-	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s.hcbackup"`, name))
-	w.Write(sealed)
+	name := "housecontrol-backup-" + now.Format("2006-01-02")
+	w.Header().Set("Cache-Control", "no-store")
+	s.log.Info("backup exported", "protected", in.Protect)
+	if in.Protect {
+		w.Header().Set("Content-Type", "application/octet-stream")
+		w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s.hcbackup"`, name))
+	} else {
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s.json"`, name))
+	}
+	w.Write(data)
 }
 
 // restoreBackup replaces all settings with a backup, after checking all of it.
@@ -98,13 +81,20 @@ func (s *Server) restoreBackup(w http.ResponseWriter, r *http.Request) {
 		writeErrCode(w, http.StatusBadRequest, codeBackupNotBackup, backup.ErrNotBackup.Error())
 		return
 	}
+	s.restoreFile(w, file, in.Password)
+}
+
+// restoreFile checks a backup file (plain JSON or encrypted with password),
+// replaces all settings with it and tells every screen.
+func (s *Server) restoreFile(w http.ResponseWriter, file []byte, password string) {
+	var err error
 	plain := file // an unprotected backup is plain JSON
 	if backup.IsSealed(file) {
-		if in.Password == "" {
+		if password == "" {
 			writeErrCode(w, http.StatusBadRequest, codeBackupNeedsPassword, "this backup is protected with a password")
 			return
 		}
-		plain, err = backup.Open(file, in.Password)
+		plain, err = backup.Open(file, password)
 	}
 	switch {
 	case errors.Is(err, backup.ErrWrongPassword):
@@ -114,8 +104,8 @@ func (s *Server) restoreBackup(w http.ResponseWriter, r *http.Request) {
 		writeErrCode(w, http.StatusBadRequest, codeBackupNotBackup, err.Error())
 		return
 	}
-	var bf backupFile
-	if err := json.Unmarshal(plain, &bf); err != nil || bf.App != backupApp {
+	var bf autobackup.File
+	if err := json.Unmarshal(plain, &bf); err != nil || bf.App != autobackup.App {
 		writeErrCode(w, http.StatusBadRequest, codeBackupNotBackup, backup.ErrNotBackup.Error())
 		return
 	}
@@ -123,6 +113,11 @@ func (s *Server) restoreBackup(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		writeErrCode(w, http.StatusBadRequest, codeBackupInvalid, "the backup can't be used: "+err.Error())
 		return
+	}
+	if snap.AutoBackup == nil { // an older backup: keep today's backup schedule
+		if cur, err := s.store.Snapshot(); err == nil {
+			snap.AutoBackup = cur.AutoBackup
+		}
 	}
 	if err := s.store.Restore(snap); err != nil {
 		writeErr(w, http.StatusInternalServerError, "could not save the settings: "+err.Error())
@@ -201,6 +196,20 @@ func validSnapshot(sn settings.Snapshot) (settings.Snapshot, error) {
 		}
 		seen[n.ID] = true
 		sn.Schedules[i] = n
+	}
+	if sn.Remotes != nil {
+		r, err := remote.NormalizeAll(sn.Remotes)
+		if err != nil {
+			return sn, fmt.Errorf("remotes: %w", err)
+		}
+		sn.Remotes = r
+	}
+	if sn.AutoBackup != nil {
+		a, err := sn.AutoBackup.Normalize()
+		if err != nil {
+			return sn, fmt.Errorf("automatic backups: %w", err)
+		}
+		sn.AutoBackup = &a
 	}
 	return sn, nil
 }

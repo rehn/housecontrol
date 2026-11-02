@@ -20,7 +20,14 @@ type Config struct {
 	MQTT    MQTT   `yaml:"mqtt"`
 	HTTP    HTTP   `yaml:"http"`
 	Auth    Auth   `yaml:"auth"`
+	Backup  Backup `yaml:"backup"`
 	DataDir string `yaml:"dataDir"` // where UI-saved settings are stored
+}
+
+// Backup is where automatic backups are kept. No Dir = no automatic backups.
+type Backup struct {
+	Dir      string `yaml:"dir"`      // e.g. /backups (its own volume)
+	Password string `yaml:"password"` // encrypts the backups; empty = readable JSON
 }
 
 type MQTT struct {
@@ -89,6 +96,8 @@ func Load(path string) (Config, error) {
 	env(&cfg.DataDir, "DATA_DIR")
 	env(&cfg.Auth.Username, "ADMIN_USERNAME")
 	env(&cfg.Auth.Password, "ADMIN_PASSWORD")
+	env(&cfg.Backup.Dir, "BACKUP_DIR")
+	env(&cfg.Backup.Password, "BACKUP_PASSWORD")
 	if strings.TrimSpace(cfg.Auth.Username) == "" {
 		cfg.Auth.Username = "admin"
 	}

@@ -63,6 +63,15 @@ func newEnv(t *testing.T) *testEnv { return newEnvWith(t, nil) }
 
 // newEnvWith lets a test change the server options (e.g. switch login on).
 func newEnvWith(t *testing.T, opt func(*Options)) *testEnv {
+	return newEnvSetup(t, func(_ *testEnv, o *Options) {
+		if opt != nil {
+			opt(o)
+		}
+	})
+}
+
+// newEnvSetup is newEnvWith with access to the store etc. before the server starts.
+func newEnvSetup(t *testing.T, opt func(*testEnv, *Options)) *testEnv {
 	dir := t.TempDir()
 	static := filepath.Join(dir, "web")
 	os.MkdirAll(filepath.Join(static, "settings"), 0o755)
@@ -80,7 +89,7 @@ func newEnvWith(t *testing.T, opt func(*Options)) *testEnv {
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 	o := Options{StaticDir: static, Weather: e.weather, Calendar: e.calendar}
 	if opt != nil {
-		opt(&o)
+		opt(e, &o)
 	}
 	e.srv = httptest.NewServer(New(e.reg, e.mq, e.store, log, o).Handler())
 	t.Cleanup(e.srv.Close)

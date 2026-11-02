@@ -19,7 +19,8 @@ uses the English names of buttons and menus.
 - [Tabs](#tabs)
 - [Grafana](#grafana)
 - [Schedules](#schedules)
-- [Settings](#settings) (including [Backup](#backup))
+- [Remotes](#remotes)
+- [Settings](#settings) (including [Backup](#backup) and [automatic backups](#automatic-backups))
 - [New lights from zigbee2mqtt](#new-lights-from-zigbee2mqtt)
 - [Tips for a wall tablet](#tips-for-a-wall-tablet)
 - [Troubleshooting](#troubleshooting)
@@ -216,6 +217,50 @@ Good to know:
 - A schedule only switches at its times; you can still switch the lights by hand
   in between.
 
+## Remotes
+
+**Settings → Remotes** lets the buttons on your Zigbee remotes (IKEA STYRBAR,
+TRÅDFRI, RODRET, SOMRIG, Philips Hue dimmer, Aqara buttons and most others)
+switch lights, outlets and groups. The server carries the presses out, so no
+screen needs to be open – and the remote keeps working when no tablet is on.
+
+Every remote paired in zigbee2mqtt is listed with its buttons. For each button
+there is a row per kind of press the remote can report:
+
+- **short press**,
+- **double press** (only on remotes that report it, e.g. SOMRIG or Aqara),
+- **hold** – keeping the button pressed.
+
+Choose what each one does:
+
+| Action | What happens |
+|---|---|
+| **Turn on** / **Turn off** | Switches everything chosen on or off. |
+| **Toggle on/off** | If anything chosen is on, all of it goes off; otherwise all of it goes on – so a group always ends up the same. |
+| **Brighter / Darker (one step)** | 20 % brighter or darker per press (Brighter turns lights on). Short and double press only. |
+| **Dim up / down while held** | The lights dim for as long as you hold the button and stop when you let go. Hold only. |
+| **Set light** | Turns on at a chosen **brightness** and/or **colour temperature** (2200–6500 K) – a simple scene. |
+
+When you choose an action, a list opens: tick **groups on the home page**
+and/or single **lights and outlets**, then **Done**. A group follows its
+card: add a lamp to the group card and the remote controls it too. The button
+next to the action shows what it controls; tap it to change. Choose
+**Nothing** to remove an action. Changes are saved at once.
+
+**Which button is which?** Press a button on the remote: the app shows
+*"Last press: Left arrow – hold"* and highlights that button for a few seconds.
+
+Good to know:
+
+- Outlets and lights without dimming just switch on/off; brightness steps and
+  dimming only affect dimmable lights. Colour temperature is only sent to lights
+  that support it (within their range).
+- zigbee2mqtt handles the remote itself: if a remote is also bound directly to
+  lights in zigbee2mqtt (Zigbee binding), both happen – remove that binding
+  if you only want the app's actions.
+- Actions are kept for a remote that is unpaired or out of battery, and work
+  again when it is back.
+
 ## Settings
 
 Log in and tap **Settings**. The menu on the left (a row of tabs on a phone)
@@ -263,6 +308,9 @@ every 15 minutes.
 ### Schedules
 See [Schedules](#schedules).
 
+### Remotes
+See [Remotes](#remotes).
+
 ### MQTT broker
 Where zigbee2mqtt's MQTT broker is, e.g. `192.168.1.201` or
 `tcp://pi.lan:1883`, with user name and password if the broker needs them.
@@ -293,6 +341,29 @@ changed. The admin password is not part of backups.
 
 Good moments for a backup: before upgrading, before moving the app to another
 server, and after setting up something you'd hate to redo.
+
+#### Automatic backups
+When the server has a backup folder (whoever installed the app sets it up –
+see the README), the app also makes a backup **by itself every day** and keeps
+them on the server. At the top of Settings → Backup:
+
+- **Make a backup every day** – on by default. **Time** is when it runs
+  (03:00 unless you change it). If the app was off at that time, the backup is
+  made as soon as it is running again. Changes are saved at once.
+- **Keep the newest … backups** – how many are kept (1–365, default 14). After
+  each new backup, older ones are **deleted**; lowering the number deletes the
+  extra ones right away.
+- **Next backup** shows when the next one will be made, and a red message
+  shows if the last automatic backup failed (it is retried after 10 minutes).
+- **Back up now** makes one immediately (it counts towards the number kept).
+- **Stored backups** lists them, newest first. **Download** saves a copy on
+  your device; **Restore** (tap twice) replaces all settings with that backup,
+  just like restoring a file.
+
+The panel says whether the stored backups are **encrypted**. That is decided on
+the server (`BACKUP_PASSWORD`), not in the app; restoring a stored backup uses
+that password automatically. Restoring a backup that is older than this
+feature keeps your current automatic-backup settings.
 
 ### Account
 Who is logged in, and **Log out**.

@@ -61,6 +61,17 @@ are computed locally for the place chosen under **Settings → Weather**, in the
 server's time zone (`TZ`). Events missed while the app was down are skipped,
 not run late.
 
+### Remotes
+
+**Settings → Remotes** maps each button of a zigbee2mqtt remote – per short
+press, double press and hold – to turning lights, outlets or home-page groups
+on/off/toggle, brightness steps, dimming while held (`brightness_move`, stopped
+on release) or a set brightness/colour temperature. Remotes are recognised by
+their `action` expose; the action values are decoded generically (IKEA, Hue,
+Aqara naming patterns), so unknown remotes still work for short presses. The
+backend acts on the `action` in the device's state message (retained messages
+are ignored), so it works without any screen open.
+
 ### Tabs and Grafana
 
 The home page can have several tabs (when logged in: **Edit** → **+ Add tab**,
@@ -106,6 +117,24 @@ every device out. Five wrong passwords from one device block it for 5 minutes.
 Without a password the login is switched off and everything is open (the
 backend logs a warning and Settings shows one).
 
+### Automatic backups
+
+Set `BACKUP_DIR` to a folder (ideally its own volume) and the app saves a
+backup of all settings there every day. When, and how many to keep, is set in
+the app under Settings → Backup (default: 03:00, keep 14; a missed backup is
+made at the next start). Files are named `housecontrol-<UTC time>.json`, or
+`.hcbackup` when `BACKUP_PASSWORD` (8+ characters) is set – then they are
+compressed and encrypted like a protected download, and can be restored from
+the app or by uploading the file. Without a password they are readable JSON
+that includes the MQTT password and calendar links. Only files with that name
+pattern are ever deleted. If the folder isn't writable or the password is too
+short, the backend logs an error and runs without automatic backups.
+
+```sh
+docker run -p 8080:8080 -v housecontrol-data:/data -v housecontrol-backups:/backups \
+  -e BACKUP_DIR=/backups -e BACKUP_PASSWORD='something long' housecontrol
+```
+
 ## Kubernetes (Helm)
 
 The chart is in `deploy/helm/housecontrol`. It runs one pod (settings are files
@@ -140,6 +169,19 @@ option is described in `values.yaml`. With the HTTPRoute on, the app takes the
 client address from `X-Forwarded-For` (`TRUST_PROXY`), so a wrong-password
 lockout only hits the guessing device. The pod needs to reach the MQTT broker
 on your LAN (192.168.1.201:1883).
+
+Automatic backups get a volume of their own, mounted at `/backups` (also kept
+on `helm uninstall`; schedule and retention are set in the app):
+
+```yaml
+backup:
+  enabled: true
+  existingSecret: housecontrol-backup   # kubectl -n housecontrol create secret generic housecontrol-backup --from-literal=BACKUP_PASSWORD='...'
+  persistence:
+    size: 1Gi
+    storageClass: ""                    # e.g. a different class than the settings volume
+    # existingClaim: my-nfs-backups
+```
 
 Chart tests: `helm lint` and [helm-unittest](https://github.com/helm-unittest/helm-unittest)
 (`helm unittest deploy/helm/housecontrol`), also run by `verify.sh` when helm is installed.
@@ -186,7 +228,8 @@ MQTT settings are applied in this order (later wins):
 3. settings saved in the UI (`<dataDir>/settings.json`)
 
 Other settings: `HTTP_ADDR` (`:8080`), `DATA_DIR` (`data`), `STATIC_DIR` (serve a
-built frontend), `CORS_ORIGINS`, `LOG_LEVEL=debug`, `ADMIN_USERNAME`, `ADMIN_PASSWORD`.
+built frontend), `CORS_ORIGINS`, `LOG_LEVEL=debug`, `ADMIN_USERNAME`, `ADMIN_PASSWORD`,
+`BACKUP_DIR`, `BACKUP_PASSWORD` (see [Automatic backups](#automatic-backups)).
 
 The broker can be given as `192.168.1.201`, `pi.lan:1883`, `tcp://…`, `ssl://…`
 or `ws(s)://…`. A missing scheme or port is filled in automatically.
@@ -202,6 +245,11 @@ or `ws(s)://…`. A missing scheme or port is filled in automatically.
 | `GET /api/dashboard`, `PUT …` | tabs (`kind` `cards` with columns of cards, or `grafana` with a `url`); older single-page layouts are served as one `home` tab |
 | `GET /api/settings/schedules`, `PUT …` | schedules + today's sunrise/sunset + each schedule's next run |
 | `POST /api/settings/backup` | `{"protect":true,"password"}` → all settings as a gzip-compressed, AES-256-GCM encrypted `.hcbackup` file (key: PBKDF2-SHA256, 600 000 rounds); `{"protect":false}` → readable `.json` |
+| `GET/PUT /api/settings/remotes` | remotes with their buttons, and `{"bindings":[{"remote","button","event":"press\|double\|hold","action","targets":["device:<id>","group:<card id>"],"brightness","colorTemp"}]}` |
+| `GET/PUT /api/settings/autobackup` | automatic backups: `{"enabled","time":"HH:MM","keep"}` plus folder, encryption, next run, last error and the stored backups |
+| `POST /api/settings/autobackup/run` | make a backup in `BACKUP_DIR` now |
+| `GET /api/settings/autobackup/files/{name}` | download a stored backup |
+| `POST /api/settings/autobackup/files/{name}/restore` | restore a stored backup (optional `{"password"}`, default `BACKUP_PASSWORD`) |
 | `POST /api/settings/restore` | `{"password","data":<base64 file>}` (password only for `.hcbackup`) → validates everything, then replaces and applies the settings |
 | `GET /api/settings/mqtt` | current broker settings + status (never returns the password) |
 | `PUT /api/settings/mqtt` | save + reconnect. `password` omitted = keep, `""` = remove |

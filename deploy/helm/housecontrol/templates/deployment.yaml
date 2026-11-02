@@ -77,6 +77,17 @@ spec:
             {{- end }}
             - name: Z2M_BASE_TOPIC
               value: {{ .Values.mqtt.baseTopic | quote }}
+            {{- if .Values.backup.enabled }}
+            - name: BACKUP_DIR
+              value: /backups
+            {{- if or .Values.backup.password .Values.backup.existingSecret }}
+            - name: BACKUP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.backup.existingSecret | default (include "housecontrol.fullname" .) }}
+                  key: {{ if .Values.backup.existingSecret }}{{ .Values.backup.existingSecretKey }}{{ else }}BACKUP_PASSWORD{{ end }}
+            {{- end }}
+            {{- end }}
             {{- range $k, $v := .Values.env }}
             - name: {{ $k }}
               value: {{ $v | quote }}
@@ -84,6 +95,10 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /data
+            {{- if .Values.backup.enabled }}
+            - name: backups
+              mountPath: /backups
+            {{- end }}
           startupProbe:
             httpGet: { path: /healthz, port: http }
             periodSeconds: 2
@@ -106,6 +121,11 @@ spec:
           {{- else }}
           emptyDir: {}
           {{- end }}
+        {{- if .Values.backup.enabled }}
+        - name: backups
+          persistentVolumeClaim:
+            claimName: {{ include "housecontrol.backupClaimName" . }}
+        {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

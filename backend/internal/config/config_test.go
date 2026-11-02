@@ -76,3 +76,17 @@ func TestTrustProxyFromEnv(t *testing.T) {
 		t.Fatal("TRUST_PROXY=false")
 	}
 }
+
+func TestBackupFromEnv(t *testing.T) {
+	t.Setenv("BACKUP_DIR", "")
+	t.Setenv("BACKUP_PASSWORD", "")
+	if cfg, _ := Load(""); cfg.Backup.Dir != "" {
+		t.Fatalf("no backup folder by default: %+v", cfg.Backup)
+	}
+	t.Setenv("BACKUP_DIR", "/backups")
+	t.Setenv("BACKUP_PASSWORD", "familjens-lösen")
+	cfg, _ := Load("")
+	if cfg.Backup.Dir != "/backups" || cfg.Backup.Password != "familjens-lösen" {
+		t.Fatalf("%+v", cfg.Backup)
+	}
+}

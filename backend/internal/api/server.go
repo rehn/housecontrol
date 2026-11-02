@@ -26,11 +26,13 @@ import (
 	"github.com/coder/websocket/wsjson"
 
 	"housecontrol/internal/auth"
+	"housecontrol/internal/autobackup"
 	"housecontrol/internal/calendar"
 	"housecontrol/internal/config"
 	"housecontrol/internal/dashboard"
 	"housecontrol/internal/devices"
 	"housecontrol/internal/mqttclient"
+	"housecontrol/internal/remote"
 	"housecontrol/internal/schedule"
 	"housecontrol/internal/settings"
 	"housecontrol/internal/weather"
@@ -60,6 +62,10 @@ type SettingsStore interface {
 	SaveSchedules([]schedule.Schedule) error
 	Snapshot() (settings.Snapshot, error)
 	Restore(settings.Snapshot) error
+	LoadAutoBackup() (settings.AutoBackup, error)
+	LoadRemotes() ([]remote.Binding, error)
+	SaveRemotes([]remote.Binding) error
+	SaveAutoBackup(settings.AutoBackup) error
 }
 
 // CalendarService downloads iCal calendars (calendar.Service).
@@ -87,6 +93,8 @@ type Options struct {
 	// seem to come from the proxy). Never set it when clients connect directly.
 	TrustProxy bool
 	Version    string // shown in backups
+	// AutoBackup keeps backups in BACKUP_DIR; nil = no backup folder.
+	AutoBackup *autobackup.Manager
 }
 
 type Server struct {
@@ -133,8 +141,15 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/calendar", s.getCalendar)
 	mux.HandleFunc("POST /api/settings/backup", s.exportBackup)
 	mux.HandleFunc("POST /api/settings/restore", s.restoreBackup)
+	mux.HandleFunc("GET /api/settings/autobackup", s.getAutoBackup)
+	mux.HandleFunc("PUT /api/settings/autobackup", s.putAutoBackup)
+	mux.HandleFunc("POST /api/settings/autobackup/run", s.runAutoBackup)
+	mux.HandleFunc("GET /api/settings/autobackup/files/{name}", s.downloadStoredBackup)
+	mux.HandleFunc("POST /api/settings/autobackup/files/{name}/restore", s.restoreStoredBackup)
 	mux.HandleFunc("GET /api/settings/schedules", s.getSchedules)
 	mux.HandleFunc("PUT /api/settings/schedules", s.putSchedules)
+	mux.HandleFunc("GET /api/settings/remotes", s.getRemotes)
+	mux.HandleFunc("PUT /api/settings/remotes", s.putRemotes)
 	mux.HandleFunc("GET /api/dashboard", s.getDashboard)
 	mux.HandleFunc("PUT /api/dashboard", s.putDashboard)
 	mux.HandleFunc("GET /api/settings/mqtt", s.getMQTTSettings)
@@ -815,6 +830,9 @@ func (s *Server) ws(w http.ResponseWriter, r *http.Request) {
 		case <-ctx.Done():
 			return
 		case e, ok := <-events:
+			if ok && e.Type == "action" {
+				continue // raw remote presses; screens get "remote" events
+			}
 			if !ok || write(ctx, conn, e) != nil {
 				return
 			}
@@ -920,6 +938,7 @@ const (
 	codeBackupNotBackup       = "backup_not_backup"
 	codeBackupInvalid         = "backup_invalid"
 	codeBackupNeedsPassword   = "backup_needs_password"
+	codeBackupNoFolder        = "backup_no_folder"
 )
 
 func writeErrCode(w http.ResponseWriter, status int, code, msg string) {

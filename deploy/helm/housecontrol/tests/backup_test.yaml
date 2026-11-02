@@ -1,0 +1,84 @@
+suite: automatic backups
+templates:
+  - deployment.yaml
+  - backup-pvc.yaml
+  - secret.yaml
+set:
+  image.repository: docker.io/lars/housecontrol
+tests:
+  - it: is off by default
+    asserts:
+      - hasDocuments: { count: 0 }
+        template: backup-pvc.yaml
+      - notContains:
+          path: spec.template.spec.containers[0].env
+          content: { name: BACKUP_DIR, value: /backups }
+        template: deployment.yaml
+
+  - it: gets its own volume that survives helm uninstall
+    template: backup-pvc.yaml
+    set:
+      backup.enabled: true
+      backup.persistence.storageClass: nfs
+      backup.persistence.size: 2Gi
+    asserts:
+      - isKind: { of: PersistentVolumeClaim }
+      - equal: { path: metadata.name, value: RELEASE-NAME-housecontrol-backups }
+      - equal: { path: spec.storageClassName, value: nfs }
+      - equal: { path: spec.resources.requests.storage, value: 2Gi }
+      - equal: { path: "metadata.annotations[\"helm.sh/resource-policy\"]", value: keep }
+
+  - it: mounts the volume at /backups and points BACKUP_DIR there
+    template: deployment.yaml
+    set:
+      backup.enabled: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content: { name: BACKUP_DIR, value: /backups }
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content: { name: backups, mountPath: /backups }
+      - contains:
+          path: spec.template.spec.volumes
+          content: { name: backups, persistentVolumeClaim: { claimName: RELEASE-NAME-housecontrol-backups } }
+
+  - it: can use an existing claim
+    set:
+      backup.enabled: true
+      backup.persistence.existingClaim: nas-backups
+    asserts:
+      - hasDocuments: { count: 0 }
+        template: backup-pvc.yaml
+      - contains:
+          path: spec.template.spec.volumes
+          content: { name: backups, persistentVolumeClaim: { claimName: nas-backups } }
+        template: deployment.yaml
+
+  - it: encrypts with a password from the chart's Secret
+    set:
+      backup.enabled: true
+      backup.password: familjens-lösen
+    asserts:
+      - equal: { path: stringData.BACKUP_PASSWORD, value: familjens-lösen }
+        template: secret.yaml
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: BACKUP_PASSWORD
+            valueFrom: { secretKeyRef: { name: RELEASE-NAME-housecontrol, key: BACKUP_PASSWORD } }
+        template: deployment.yaml
+
+  - it: or from an existing Secret
+    set:
+      backup.enabled: true
+      backup.existingSecret: housecontrol-backup
+    asserts:
+      - hasDocuments: { count: 0 }
+        template: secret.yaml
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: BACKUP_PASSWORD
+            valueFrom: { secretKeyRef: { name: housecontrol-backup, key: BACKUP_PASSWORD } }
+        template: deployment.yaml
