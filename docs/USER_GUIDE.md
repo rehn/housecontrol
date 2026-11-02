@@ -224,7 +224,9 @@ TRÅDFRI, RODRET, SOMRIG, Philips Hue dimmer, Aqara buttons and most others)
 switch lights, outlets and groups. The server carries the presses out, so no
 screen needs to be open – and the remote keeps working when no tablet is on.
 
-Every remote paired in zigbee2mqtt is listed with its buttons.
+Every remote paired in zigbee2mqtt is listed, folded up to one line with its
+name and what it controls (or **Not set up**). Tap a remote to open it; pressing
+a button on a remote opens it by itself, so you can tell which is which.
 
 **1. Choose what the remote controls.** Tap **Choose a group or light** and
 pick one **group on the home page** or one **light or outlet**. The buttons

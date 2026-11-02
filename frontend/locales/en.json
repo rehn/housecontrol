@@ -422,6 +422,7 @@
     "notActive": "The buttons start working once the remote controls something.",
     "targetTitle": "What should {name} control?",
     "targetNone": "Nothing (remote off)",
-    "resetDefaults": "Standard buttons"
+    "resetDefaults": "Standard buttons",
+    "notSetUp": "Not set up"
   }
 }

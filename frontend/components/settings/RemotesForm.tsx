@@ -157,68 +157,91 @@ function RemoteBox(props: {
   const replace = (old: RemoteButtonAction, next: RemoteButtonAction) =>
     props.onActions(props.actions.map((a) => (a === old ? next : a)));
 
+  // folded up by default; a press on this remote opens it
+  const [open, setOpen] = useState(false);
+  const pressedAt = props.lastPress?.at;
+  useEffect(() => {
+    if (pressedAt && Date.now() - pressedAt < HIGHLIGHT_MS) setOpen(true);
+  }, [pressedAt]);
+  const bodyId = `remote-body-${r.id}`;
+
   const isDefault =
     props.actions.length === r.defaults.length &&
     r.defaults.every((d) => props.actions.some((a) => a.button === d.button && a.event === d.event && a.action === d.action));
 
   return (
-    <section className={`remote-box ${props.target ? "" : "unset"}`} role="group" aria-labelledby={titleId}>
+    <section className={`remote-box ${props.target ? "" : "unset"} ${open ? "open" : ""}`} role="group" aria-labelledby={titleId}>
       <div className="remote-head">
-        <h3 id={titleId}>{r.name}</h3>
+        <h3 id={titleId}>
+          <button type="button" className="remote-toggle" aria-expanded={open} aria-controls={bodyId} onClick={() => setOpen((o) => !o)}>
+            <span className="chevron" aria-hidden="true">
+              ›
+            </span>
+            {r.name}
+          </button>
+        </h3>
         <span className="meta">
           {[r.vendor, r.model].filter(Boolean).join(" ")}
           {r.availability === "offline" && ` · ${t("remotes.offline")}`}
         </span>
+        <span className={`remote-status ${props.target ? "" : "unset"}`}>
+          {props.target ? `${t("remotes.controls")}: ${props.targetName(props.target)}` : t("remotes.notSetUp")}
+        </span>
+        {fresh && !open && <span className="remote-pressed-dot" aria-hidden="true" />}
       </div>
 
-      <div className="remote-target">
-        <button type="button" className={`btn ${props.target ? "" : "primary"}`} onClick={props.onPickTarget}>
-          {props.target ? `${t("remotes.controls")}: ${props.targetName(props.target)}` : t("remotes.chooseTarget")}
-        </button>
-        {!props.target && <span className="meta">{t("remotes.notActive")}</span>}
-      </div>
+      {open && (
+        <div className="remote-body" id={bodyId}>
+          <div className="remote-target">
+            <button type="button" className={`btn ${props.target ? "" : "primary"}`} onClick={props.onPickTarget}>
+              {props.target ? `${t("remotes.controls")}: ${props.targetName(props.target)}` : t("remotes.chooseTarget")}
+            </button>
+            {!props.target && <span className="meta">{t("remotes.notActive")}</span>}
+          </div>
 
-      <p className={`meta remote-last ${fresh ? "fresh" : ""}`} aria-live="polite">
-        {props.lastPress
-          ? t("remotes.lastPress", {
-              button: buttonLabel(t, props.lastPress.button),
-              event: t(`remotes.events.${props.lastPress.event}`),
-            })
-          : t("remotes.pressHint")}
-      </p>
+          <p className={`meta remote-last ${fresh ? "fresh" : ""}`} aria-live="polite">
+            {props.lastPress
+              ? t("remotes.lastPress", {
+                  button: buttonLabel(t, props.lastPress.button),
+                  event: t(`remotes.events.${props.lastPress.event}`),
+                })
+              : t("remotes.pressHint")}
+          </p>
 
-      {r.buttons.map((btn) => (
-        <div key={btn.id} className={`remote-button ${fresh?.button === btn.id ? "pressed" : ""}`}>
-          <div className="remote-button-name">{buttonLabel(t, btn.id)}</div>
-          {btn.events.map((ev) => {
-            const a = find(btn.id, ev);
-            return (
-              <div key={ev} className="remote-row">
-                <span className="remote-event">{t(`remotes.events.${ev}`)}</span>
-                <select
-                  aria-label={`${buttonLabel(t, btn.id)} – ${t(`remotes.events.${ev}`)}`}
-                  value={a?.action ?? ""}
-                  onChange={(e) => choose(btn.id, ev, e.target.value as RemoteAction | "")}
-                >
-                  <option value="">{t("remotes.actions.none")}</option>
-                  {(ev === "hold" ? HOLD_ACTIONS : PRESS_ACTIONS).map((x) => (
-                    <option key={x} value={x}>
-                      {t(`remotes.actions.${x}`)}
-                    </option>
-                  ))}
-                </select>
-                {a?.action === "set" && <SetFields action={a} onChange={(n) => replace(a, n)} />}
-              </div>
-            );
-          })}
-        </div>
-      ))}
+          {r.buttons.map((btn) => (
+            <div key={btn.id} className={`remote-button ${fresh?.button === btn.id ? "pressed" : ""}`}>
+              <div className="remote-button-name">{buttonLabel(t, btn.id)}</div>
+              {btn.events.map((ev) => {
+                const a = find(btn.id, ev);
+                return (
+                  <div key={ev} className="remote-row">
+                    <span className="remote-event">{t(`remotes.events.${ev}`)}</span>
+                    <select
+                      aria-label={`${buttonLabel(t, btn.id)} – ${t(`remotes.events.${ev}`)}`}
+                      value={a?.action ?? ""}
+                      onChange={(e) => choose(btn.id, ev, e.target.value as RemoteAction | "")}
+                    >
+                      <option value="">{t("remotes.actions.none")}</option>
+                      {(ev === "hold" ? HOLD_ACTIONS : PRESS_ACTIONS).map((x) => (
+                        <option key={x} value={x}>
+                          {t(`remotes.actions.${x}`)}
+                        </option>
+                      ))}
+                    </select>
+                    {a?.action === "set" && <SetFields action={a} onChange={(n) => replace(a, n)} />}
+                  </div>
+                );
+              })}
+            </div>
+          ))}
 
-      {!isDefault && r.defaults.length > 0 && (
-        <div className="actions">
-          <button type="button" className="btn" onClick={() => props.onActions(r.defaults)}>
-            {t("remotes.resetDefaults")}
-          </button>
+          {!isDefault && r.defaults.length > 0 && (
+            <div className="actions">
+              <button type="button" className="btn" onClick={() => props.onActions(r.defaults)}>
+                {t("remotes.resetDefaults")}
+              </button>
+            </div>
+          )}
         </div>
       )}
     </section>

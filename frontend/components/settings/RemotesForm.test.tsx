@@ -33,9 +33,10 @@ const view = (configs: RemoteConfig[] = []): RemotesView => ({
   configs,
 });
 
-function setup(v = view(), lastPress: LastPress | null = null) {
+function setup(v = view(), lastPress: LastPress | null = null, expand = true) {
   const onSave = vi.fn((c: RemoteConfig[]) => Promise.resolve({ ...v, configs: c }));
   render(<RemotesForm initial={v} devices={devices} groups={groups} lastPress={lastPress} onSave={onSave} />);
+  if (expand) for (const r of v.remotes) fireEvent.click(screen.getByRole("button", { name: r.name }));
   return { onSave };
 }
 
@@ -134,8 +135,36 @@ describe("RemotesForm", () => {
     expect(onSave).toHaveBeenLastCalledWith([other]); // other remotes' settings are kept
   });
 
+  it("is folded up until opened, showing what each remote controls", () => {
+    setup(view([configured()]), null, false);
+    const head = screen.getByRole("button", { name: "Fjärr soffan" });
+    expect(head.getAttribute("aria-expanded")).toBe("false");
+    expect(screen.queryByRole("combobox")).toBeNull();
+    expect(screen.getByText("Controls: Vardagsrum")).toBeTruthy();
+    fireEvent.click(head);
+    expect(head.getAttribute("aria-expanded")).toBe("true");
+    expect(select("On – short press")).toBeTruthy();
+    fireEvent.click(head);
+    expect(screen.queryByRole("combobox")).toBeNull();
+  });
+
+  it("says when a folded remote controls nothing yet", () => {
+    setup(view(), null, false);
+    expect(screen.getByText("Not set up")).toBeTruthy();
+  });
+
+  it("opens the remote whose button is pressed", () => {
+    const v = view();
+    const { rerender } = render(<RemotesForm initial={v} devices={devices} groups={groups} lastPress={null} onSave={vi.fn()} />);
+    expect(screen.queryByRole("combobox")).toBeNull();
+    rerender(
+      <RemotesForm initial={v} devices={devices} groups={groups} lastPress={{ remote: "0x10", button: "off", event: "press", at: Date.now() }} onSave={vi.fn()} />,
+    );
+    expect(screen.getByRole("button", { name: "Fjärr soffan" }).getAttribute("aria-expanded")).toBe("true");
+  });
+
   it("shows which button was just pressed", () => {
-    setup(view(), { remote: "0x10", button: "arrow_left", event: "hold", at: Date.now() });
+    setup(view(), { remote: "0x10", button: "arrow_left", event: "hold", at: Date.now() }, false);
     const box = screen.getByRole("group", { name: "Fjärr soffan" });
     expect(within(box).getByText(/Last press: Left arrow – hold/)).toBeTruthy();
     expect(within(box).getByText("Left arrow").closest(".remote-button")!.className).toContain("pressed");
@@ -147,6 +176,8 @@ describe("RemotesForm", () => {
         <RemotesForm initial={view()} devices={devices} groups={groups} lastPress={null} onSave={vi.fn()} />
       </I18nProvider>,
     );
+    expect(screen.getByText("Inte inställd")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Fjärr soffan" }));
     expect(screen.getByRole("combobox", { name: "På – kort tryck" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Välj grupp eller lampa" })).toBeTruthy();
   });

@@ -422,6 +422,7 @@
     "notActive": "Knapparna börjar fungera när fjärren styr något.",
     "targetTitle": "Vad ska {name} styra?",
     "targetNone": "Ingenting (fjärren avstängd)",
-    "resetDefaults": "Standardknappar"
+    "resetDefaults": "Standardknappar",
+    "notSetUp": "Inte inställd"
   }
 }
