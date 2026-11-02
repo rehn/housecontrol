@@ -30,8 +30,10 @@ type file struct {
 	Schedules []schedule.Schedule  `json:"schedules,omitempty"`
 	// AutoBackup: when backups are made automatically (they go to BACKUP_DIR).
 	AutoBackup *AutoBackup `json:"autoBackup,omitempty"`
-	// Remotes: what the buttons on zigbee2mqtt remotes do.
-	Remotes []remote.Binding `json:"remotes,omitempty"`
+	// Remotes: what each zigbee2mqtt remote controls, and what its buttons do.
+	Remotes []remote.Config `json:"remoteControls,omitempty"`
+	// LegacyRemotes is the first format (per-button targets), moved over on load.
+	LegacyRemotes []remote.Binding `json:"remotes,omitempty"`
 }
 
 // Calendar is one iCal link shown on calendar cards. The URL often contains
@@ -240,24 +242,38 @@ func (s *Store) SaveAutoBackup(a AutoBackup) error {
 	return s.write(f)
 }
 
-func (s *Store) LoadRemotes() ([]remote.Binding, error) {
+func (s *Store) LoadRemotes() ([]remote.Config, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	f, err := s.read()
 	if err != nil {
 		return nil, err
 	}
-	return f.Remotes, nil
+	return f.remotes(), nil
 }
 
-func (s *Store) SaveRemotes(l []remote.Binding) error {
+// remotes returns the remote configs, moving the first format over.
+func (f file) remotes() []remote.Config {
+	if f.Remotes == nil && len(f.LegacyRemotes) > 0 {
+		var out []remote.Config
+		for _, c := range remote.Migrate(f.LegacyRemotes) {
+			if n, err := c.Normalize(); err == nil {
+				out = append(out, n)
+			}
+		}
+		return out
+	}
+	return f.Remotes
+}
+
+func (s *Store) SaveRemotes(l []remote.Config) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	f, err := s.read()
 	if err != nil {
 		return err
 	}
-	f.Remotes = l
+	f.Remotes, f.LegacyRemotes = l, nil
 	return s.write(f)
 }
 

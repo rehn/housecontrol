@@ -299,17 +299,22 @@ export type RemoteEvent = "press" | "double" | "hold";
 export type RemoteAction = "on" | "off" | "toggle" | "brighter" | "darker" | "dim_up" | "dim_down" | "set";
 
 /** What one kind of press on one button does. */
-export interface RemoteBinding {
-  remote: string;
+export interface RemoteButtonAction {
   button: string;
   event: RemoteEvent;
   action: RemoteAction;
-  /** "device:<id>" or "group:<group card id>" */
-  targets: string[];
   /** set: % */
   brightness?: number;
   /** set: mired */
   colorTemp?: number;
+}
+
+/** One remote: what it controls, and what its buttons do. */
+export interface RemoteConfig {
+  remote: string;
+  /** "device:<id>" or "group:<group card id>" */
+  target: string;
+  actions: RemoteButtonAction[];
 }
 
 export interface RemoteInfo {
@@ -320,15 +325,17 @@ export interface RemoteInfo {
   description?: string;
   availability: string;
   buttons: { id: string; events: RemoteEvent[] }[];
+  /** what the buttons do until changed */
+  defaults: RemoteButtonAction[];
 }
 
 export interface RemotesView {
   remotes: RemoteInfo[];
-  bindings: RemoteBinding[];
+  configs: RemoteConfig[];
 }
 
 export const getRemotes = () => request<RemotesView>("GET", "/api/settings/remotes");
-export const saveRemotes = (bindings: RemoteBinding[]) => request<RemotesView>("PUT", "/api/settings/remotes", { bindings });
+export const saveRemotes = (configs: RemoteConfig[]) => request<RemotesView>("PUT", "/api/settings/remotes", { configs });
 
 /** Login state as the server sees it. `required` is false when no password is set. */
 export interface AuthStatus {

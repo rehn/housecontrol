@@ -125,7 +125,7 @@ func main() {
 	go runner.Run(ctx)
 
 	// Remotes: buttons on zigbee2mqtt remotes switch lights, outlets and groups.
-	remotes := remote.NewEngine(func() []remote.Binding {
+	remotes := remote.NewEngine(func() []remote.Config {
 		l, err := store.LoadRemotes()
 		if err != nil {
 			log.Error("read remote actions", "err", err)

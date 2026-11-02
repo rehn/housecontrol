@@ -1,6 +1,9 @@
 package api
 
 import (
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"housecontrol/internal/devices"
@@ -39,43 +42,64 @@ func TestRemotesList(t *testing.T) {
 	if r["id"] != "0x10" || r["name"] != "Fjärr soffan" || r["model"] != "E2201" {
 		t.Fatalf("%v", r)
 	}
-	buttons := r["buttons"].([]any)
-	if len(buttons) != 2 || buttons[0].(map[string]any)["id"] != "on" ||
-		len(buttons[0].(map[string]any)["events"].([]any)) != 2 {
-		t.Fatalf("buttons %v", buttons)
+	if b := r["buttons"].([]any); len(b) != 2 || b[0].(map[string]any)["id"] != "on" {
+		t.Fatalf("buttons %v", b)
 	}
-	if b := v["bindings"].([]any); len(b) != 0 {
-		t.Fatalf("bindings %v", b)
+	// up/on switches on and dims up while held, down/off the other way
+	if d := r["defaults"].([]any); len(d) != 4 || d[1].(map[string]any)["action"] != "dim_up" {
+		t.Fatalf("defaults %v", d)
+	}
+	if c := v["configs"].([]any); len(c) != 0 {
+		t.Fatalf("configs %v", c)
 	}
 }
 
 func TestRemotesSave(t *testing.T) {
 	e := newEnv(t)
 	withRemotes(t, e)
-	code, v := do(t, "PUT", e.srv.URL+"/api/settings/remotes", `{"bindings":[
-	  {"remote":"0x10","button":"on","event":"press","action":"toggle","targets":["group:vardagsrum","device:0x01"]},
-	  {"remote":"0x10","button":"on","event":"hold","action":"dim_up","targets":["group:vardagsrum"]}]}`)
-	if code != 200 || len(v["bindings"].([]any)) != 2 {
+	code, v := do(t, "PUT", e.srv.URL+"/api/settings/remotes", `{"configs":[{"remote":"0x10","target":"group:vardagsrum","actions":[
+	  {"button":"on","event":"press","action":"toggle"},
+	  {"button":"on","event":"hold","action":"dim_up"}]}]}`)
+	if code != 200 || len(v["configs"].([]any)) != 1 {
 		t.Fatalf("%d %v", code, v)
 	}
 	saved, _ := e.store.LoadRemotes()
-	if len(saved) != 2 || saved[1].Action != remote.ActionDimUp {
+	if len(saved) != 1 || saved[0].Target != "group:vardagsrum" || saved[0].Actions[1].Action != remote.ActionDimUp {
 		t.Fatalf("%+v", saved)
 	}
-	code, v = do(t, "PUT", e.srv.URL+"/api/settings/remotes", `{"bindings":[
-	  {"remote":"0x10","button":"on","event":"press","action":"dim_up","targets":["device:0x01"]}]}`)
+	code, v = do(t, "PUT", e.srv.URL+"/api/settings/remotes", `{"configs":[{"remote":"0x10","target":"device:0x01","actions":[
+	  {"button":"on","event":"press","action":"dim_up"}]}]}`)
 	if code != 400 {
 		t.Fatalf("dimming on a short press: %d %v", code, v)
 	}
-	if saved, _ := e.store.LoadRemotes(); len(saved) != 2 {
+	if saved, _ := e.store.LoadRemotes(); saved[0].Target != "group:vardagsrum" {
 		t.Fatal("a refused change must not be saved")
+	}
+}
+
+func TestRemotesFirstFormatIsMovedOver(t *testing.T) {
+	e := newEnv(t)
+	os.MkdirAll(filepath.Dir(e.store.Path()), 0o700)
+	os.WriteFile(e.store.Path(), []byte(`{"remotes":[
+	  {"remote":"0x10","button":"on","event":"press","action":"on","targets":["group:g","device:0x01"]},
+	  {"remote":"0x10","button":"off","event":"press","action":"off","targets":["group:g"]}]}`), 0o600)
+	_, v := do(t, "GET", e.srv.URL+"/api/settings/remotes", "")
+	c := v["configs"].([]any)
+	if len(c) != 1 || c[0].(map[string]any)["target"] != "group:g" || len(c[0].(map[string]any)["actions"].([]any)) != 2 {
+		t.Fatalf("%v", c)
+	}
+	// saving writes the new format only
+	e.store.SaveRemotes([]remote.Config{{Remote: "0x10", Target: "device:0x01", Actions: []remote.Action{}}})
+	b, _ := os.ReadFile(e.store.Path())
+	if s := string(b); !strings.Contains(s, `"remoteControls"`) || strings.Contains(s, `"remotes"`) {
+		t.Fatalf("%s", s)
 	}
 }
 
 func TestRemotesNeedLogin(t *testing.T) {
 	e := newAuthEnv(t)
 	for _, m := range []string{"GET", "PUT"} {
-		if code, _ := do(t, m, e.srv.URL+"/api/settings/remotes", `{"bindings":[]}`); code != 401 {
+		if code, _ := do(t, m, e.srv.URL+"/api/settings/remotes", `{"configs":[]}`); code != 401 {
 			t.Errorf("%s: %d", m, code)
 		}
 	}
@@ -83,7 +107,8 @@ func TestRemotesNeedLogin(t *testing.T) {
 
 func TestBackupKeepsRemotes(t *testing.T) {
 	from := newEnv(t)
-	from.store.SaveRemotes([]remote.Binding{{Remote: "0x10", Button: "on", Event: "press", Action: "on", Targets: []string{"device:0x01"}}})
+	from.store.SaveRemotes([]remote.Config{{Remote: "0x10", Target: "device:0x01",
+		Actions: []remote.Action{{Button: "on", Event: "press", Action: "on"}}}})
 	code, file, _ := exportWith(t, from, `{"protect":false}`)
 	if code != 200 {
 		t.Fatal(code)
@@ -92,7 +117,7 @@ func TestBackupKeepsRemotes(t *testing.T) {
 	if code, v := restoreBackup(t, to, "", file); code != 200 {
 		t.Fatalf("%d %v", code, v)
 	}
-	if r, _ := to.store.LoadRemotes(); len(r) != 1 || r[0].Button != "on" {
+	if r, _ := to.store.LoadRemotes(); len(r) != 1 || r[0].Target != "device:0x01" {
 		t.Fatalf("%+v", r)
 	}
 }

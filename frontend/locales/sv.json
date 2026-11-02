@@ -373,7 +373,7 @@
     "download": "Ladda ner"
   },
   "remotes": {
-    "hint": "Välj vad varje knapp gör – med ett kort tryck, ett dubbeltryck eller medan den hålls in. Servern sköter det, så inget behöver vara öppet.",
+    "hint": "Varje fjärrkontroll styr en grupp eller lampa. Välj vad varje knapp gör – med ett kort tryck, ett dubbeltryck eller medan den hålls in. Servern sköter det, så inget behöver vara öppet.",
     "none": "Inga fjärrkontroller hittades. Para ihop dem i zigbee2mqtt så dyker de upp här.",
     "pressHint": "Tryck på en knapp på fjärrkontrollen så markeras den här.",
     "lastPress": "Senaste tryck: {button} – {event}",
@@ -407,19 +407,21 @@
       "button": "Knappen",
       "number": "Knapp {n}"
     },
-    "chooseTargets": "Välj vad som ska styras",
-    "targetsTitle": "Vad ska den styra?",
     "groups": "Grupper på startsidan",
     "noGroups": "Inga grupper än – skapa en på startsidan för att styra flera lampor tillsammans.",
     "devices": "Lampor och uttag",
-    "done": "Klar",
-    "manyTargets": "{first} och {count} till",
     "missingGroup": "(borttagen grupp)",
     "missingDevice": "(okänd enhet)",
     "brightness": "Ljusstyrka (%)",
     "colorTemp": "Färgtemperatur",
     "colorTempKeep": "Behåll som den är",
     "kelvin": "{k} K",
-    "saveFailed": "Det gick inte att spara: {error}"
+    "saveFailed": "Det gick inte att spara: {error}",
+    "controls": "Styr",
+    "chooseTarget": "Välj grupp eller lampa",
+    "notActive": "Knapparna börjar fungera när fjärren styr något.",
+    "targetTitle": "Vad ska {name} styra?",
+    "targetNone": "Ingenting (fjärren avstängd)",
+    "resetDefaults": "Standardknappar"
   }
 }

@@ -63,8 +63,8 @@ type SettingsStore interface {
 	Snapshot() (settings.Snapshot, error)
 	Restore(settings.Snapshot) error
 	LoadAutoBackup() (settings.AutoBackup, error)
-	LoadRemotes() ([]remote.Binding, error)
-	SaveRemotes([]remote.Binding) error
+	LoadRemotes() ([]remote.Config, error)
+	SaveRemotes([]remote.Config) error
 	SaveAutoBackup(settings.AutoBackup) error
 }
 

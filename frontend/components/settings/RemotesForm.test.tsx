@@ -1,6 +1,6 @@
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { Device, RemoteBinding, RemotesView } from "@/lib/api";
+import type { Device, RemoteAction, RemoteConfig, RemoteEvent, RemotesView } from "@/lib/api";
 import { I18nProvider } from "@/lib/i18n";
 import { RemotesForm, type LastPress } from "./RemotesForm";
 
@@ -11,8 +11,10 @@ const dev = (id: string, name: string, kind: Device["kind"]): Device =>
 
 const devices = [dev("0x01", "Taklampa", "light"), dev("0x02", "TV-uttag", "switch"), dev("0x10", "Fjärr soffan", "remote")];
 const groups = [{ id: "g-vardagsrum", title: "Vardagsrum" }];
+const a = (button: string, event: RemoteEvent, action: RemoteAction) => ({ button, event, action });
+const defaults = [a("on", "press", "on"), a("on", "hold", "dim_up"), a("off", "press", "off"), a("off", "hold", "dim_down")];
 
-const view = (bindings: RemoteBinding[] = []): RemotesView => ({
+const view = (configs: RemoteConfig[] = []): RemotesView => ({
   remotes: [
     {
       id: "0x10",
@@ -25,88 +27,111 @@ const view = (bindings: RemoteBinding[] = []): RemotesView => ({
         { id: "off", events: ["press", "hold"] },
         { id: "arrow_left", events: ["press", "hold"] },
       ],
+      defaults,
     },
   ],
-  bindings,
+  configs,
 });
 
 function setup(v = view(), lastPress: LastPress | null = null) {
-  const onSave = vi.fn((b: RemoteBinding[]) => Promise.resolve({ ...v, bindings: b }));
-  const utils = render(<RemotesForm initial={v} devices={devices} groups={groups} lastPress={lastPress} onSave={onSave} />);
-  return { onSave, ...utils };
+  const onSave = vi.fn((c: RemoteConfig[]) => Promise.resolve({ ...v, configs: c }));
+  render(<RemotesForm initial={v} devices={devices} groups={groups} lastPress={lastPress} onSave={onSave} />);
+  return { onSave };
 }
 
-const row = (name: string) => screen.getByRole("combobox", { name });
+const select = (name: string) => screen.getByRole("combobox", { name }) as HTMLSelectElement;
+const configured = (over: Partial<RemoteConfig> = {}): RemoteConfig => ({ remote: "0x10", target: "group:g-vardagsrum", actions: defaults, ...over });
 
 describe("RemotesForm", () => {
-  it("lists the remotes with their buttons and kinds of press", () => {
-    setup();
+  it("starts a new remote with on/off on short presses and dimming while held", () => {
+    const { onSave } = setup();
     const box = screen.getByRole("group", { name: "Fjärr soffan" });
     expect(within(box).getByText(/IKEA E2001\/E2002/)).toBeTruthy();
-    expect(within(box).getByText("Left arrow")).toBeTruthy();
-    expect(row("On – short press")).toBeTruthy();
-    expect(row("On – hold")).toBeTruthy();
+    expect(select("On – short press").value).toBe("on");
+    expect(select("On – hold").value).toBe("dim_up");
+    expect(select("Off – short press").value).toBe("off");
+    expect(select("Off – hold").value).toBe("dim_down");
+    expect(select("Left arrow – short press").value).toBe("");
     // dimming is only offered while held
-    expect(within(row("On – short press")).queryByRole("option", { name: "Dim up while held" })).toBeNull();
-    expect(within(row("On – hold")).getByRole("option", { name: "Dim up while held" })).toBeTruthy();
+    expect(within(select("On – short press")).queryByRole("option", { name: "Dim up while held" })).toBeNull();
+    expect(within(box).getByRole("button", { name: "Choose a group or light" })).toBeTruthy();
+    expect(onSave).not.toHaveBeenCalled();
   });
 
   it("says how to add remotes when there are none", () => {
-    setup({ remotes: [], bindings: [] });
+    setup({ remotes: [], configs: [] });
     expect(screen.getByText(/zigbee2mqtt/)).toBeTruthy();
   });
 
-  it("asks what to control, then saves (a group of the home page)", async () => {
+  it("controls one group or light for the whole remote", async () => {
     const { onSave } = setup();
-    fireEvent.change(row("On – short press"), { target: { value: "toggle" } });
-    expect(onSave).not.toHaveBeenCalled(); // nothing to switch yet
-    const dialog = screen.getByRole("dialog", { name: "What should it control?" });
-    fireEvent.click(within(dialog).getByRole("checkbox", { name: "Vardagsrum" }));
-    fireEvent.click(within(dialog).getByRole("checkbox", { name: "Taklampa" }));
-    expect(within(dialog).queryByRole("checkbox", { name: "Fjärr soffan" })).toBeNull(); // only lights and outlets
-    fireEvent.click(within(dialog).getByRole("button", { name: "Done" }));
+    fireEvent.click(screen.getByRole("button", { name: "Choose a group or light" }));
+    const dialog = screen.getByRole("dialog", { name: "What should Fjärr soffan control?" });
+    expect(within(dialog).queryByRole("radio", { name: "Fjärr soffan" })).toBeNull(); // only lights and outlets
+    expect(within(dialog).getByRole("radio", { name: "TV-uttag" })).toBeTruthy();
+    fireEvent.click(within(dialog).getByRole("radio", { name: "Vardagsrum" }));
     await act(async () => {});
-    expect(onSave).toHaveBeenLastCalledWith([
-      { remote: "0x10", button: "on", event: "press", action: "toggle", targets: ["group:g-vardagsrum", "device:0x01"] },
-    ]);
-    expect(screen.getByRole("button", { name: /Vardagsrum, Taklampa/ })).toBeTruthy();
+    expect(onSave).toHaveBeenLastCalledWith([configured()]);
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.getByRole("button", { name: /Controls: Vardagsrum/ })).toBeTruthy();
   });
 
-  it("changes and removes an action", async () => {
-    const b: RemoteBinding = { remote: "0x10", button: "off", event: "press", action: "off", targets: ["device:0x02"] };
-    const { onSave } = setup(view([b]));
-    expect((row("Off – short press") as HTMLSelectElement).value).toBe("off");
-    fireEvent.change(row("Off – short press"), { target: { value: "toggle" } });
+  it("remembers button changes made before choosing what to control", async () => {
+    const { onSave } = setup();
+    fireEvent.change(select("Left arrow – short press"), { target: { value: "toggle" } });
+    expect(onSave).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Choose a group or light" }));
+    fireEvent.click(screen.getByRole("radio", { name: "Taklampa" }));
     await act(async () => {});
-    expect(onSave).toHaveBeenLastCalledWith([{ ...b, action: "toggle" }]);
-    fireEvent.change(row("Off – short press"), { target: { value: "" } });
+    expect(onSave).toHaveBeenLastCalledWith([
+      configured({ target: "device:0x01", actions: [...defaults, a("arrow_left", "press", "toggle")] }),
+    ]);
+  });
+
+  it("changes and removes a button's action", async () => {
+    const { onSave } = setup(view([configured()]));
+    fireEvent.change(select("Off – short press"), { target: { value: "toggle" } });
     await act(async () => {});
-    expect(onSave).toHaveBeenLastCalledWith([]);
+    expect(onSave).toHaveBeenLastCalledWith([
+      configured({ actions: [defaults[0], defaults[1], a("off", "press", "toggle"), defaults[3]] }),
+    ]);
+    fireEvent.change(select("On – hold"), { target: { value: "" } });
+    await act(async () => {});
+    expect(onSave).toHaveBeenLastCalledWith([
+      configured({ actions: [defaults[0], a("off", "press", "toggle"), defaults[3]] }),
+    ]);
   });
 
   it("sets brightness and colour temperature", async () => {
-    const b: RemoteBinding = { remote: "0x10", button: "arrow_left", event: "press", action: "on", targets: ["device:0x01"] };
-    const { onSave } = setup(view([b]));
-    fireEvent.change(row("Left arrow – short press"), { target: { value: "set" } });
+    const { onSave } = setup(view([configured({ actions: [] })]));
+    fireEvent.change(select("Left arrow – short press"), { target: { value: "set" } });
     await act(async () => {});
-    expect(onSave).toHaveBeenLastCalledWith([{ ...b, action: "set", brightness: 100 }]);
-    const pct = screen.getByLabelText("Brightness (%)") as HTMLInputElement;
+    expect(onSave).toHaveBeenLastCalledWith([configured({ actions: [{ ...a("arrow_left", "press", "set"), brightness: 100 }] })]);
+    const pct = screen.getByLabelText("Brightness (%)");
     fireEvent.change(pct, { target: { value: "30" } });
     fireEvent.blur(pct);
     await act(async () => {});
-    expect(onSave).toHaveBeenLastCalledWith([{ ...b, action: "set", brightness: 30 }]);
     fireEvent.change(screen.getByLabelText("Colour temperature"), { target: { value: "454" } });
     await act(async () => {});
-    expect(onSave).toHaveBeenLastCalledWith([{ ...b, action: "set", brightness: 30, colorTemp: 454 }]);
+    expect(onSave).toHaveBeenLastCalledWith([
+      configured({ actions: [{ ...a("arrow_left", "press", "set"), brightness: 30, colorTemp: 454 }] }),
+    ]);
   });
 
-  it("keeps the actions of remotes that aren't connected now", async () => {
-    const gone: RemoteBinding = { remote: "0x99", button: "on", event: "press", action: "on", targets: ["device:0x01"] };
-    const kept: RemoteBinding = { remote: "0x10", button: "on", event: "press", action: "on", targets: ["device:0x01"] };
-    const { onSave } = setup(view([gone, kept]));
-    fireEvent.change(row("On – short press"), { target: { value: "off" } });
+  it("can go back to the standard buttons", async () => {
+    const { onSave } = setup(view([configured({ actions: [a("on", "press", "toggle")] })]));
+    fireEvent.click(screen.getByRole("button", { name: "Standard buttons" }));
     await act(async () => {});
-    expect(onSave).toHaveBeenLastCalledWith([gone, { ...kept, action: "off" }]);
+    expect(onSave).toHaveBeenLastCalledWith([configured()]);
+  });
+
+  it("can stop controlling anything", async () => {
+    const other: RemoteConfig = { remote: "0x99", target: "device:0x01", actions: [] };
+    const { onSave } = setup(view([other, configured()]));
+    fireEvent.click(screen.getByRole("button", { name: /Controls: Vardagsrum/ }));
+    fireEvent.click(screen.getByRole("radio", { name: "Nothing (remote off)" }));
+    await act(async () => {});
+    expect(onSave).toHaveBeenLastCalledWith([other]); // other remotes' settings are kept
   });
 
   it("shows which button was just pressed", () => {
@@ -123,6 +148,6 @@ describe("RemotesForm", () => {
       </I18nProvider>,
     );
     expect(screen.getByRole("combobox", { name: "På – kort tryck" })).toBeTruthy();
-    expect(screen.getByRole("combobox", { name: "Vänsterpil – håll in" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Välj grupp eller lampa" })).toBeTruthy();
   });
 });

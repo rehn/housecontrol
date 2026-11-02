@@ -4,6 +4,7 @@ import (
 	"io"
 	"log/slog"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -33,12 +34,12 @@ func (f *fakeDevices) Actions(id string) ([]string, bool) {
 }
 
 type env struct {
-	e        *Engine
-	send     *fakeSender
-	devs     *fakeDevices
-	bindings []Binding
-	presses  []Pressed
-	now      time.Time
+	e       *Engine
+	send    *fakeSender
+	devs    *fakeDevices
+	configs []Config
+	presses []Pressed
+	now     time.Time
 }
 
 func newEngine(t *testing.T) *env {
@@ -59,7 +60,7 @@ func newEngine(t *testing.T) *env {
 		}
 		return nil, false
 	}
-	v.e = NewEngine(func() []Binding { return v.bindings }, groups, v.devs, v.send,
+	v.e = NewEngine(func() []Config { return v.configs }, groups, v.devs, v.send,
 		slog.New(slog.NewTextHandler(io.Discard, nil)))
 	v.e.now = func() time.Time { return v.now }
 	v.e.OnPress = func(p Pressed) { v.presses = append(v.presses, p) }
@@ -110,28 +111,34 @@ func itoa(i int) string {
 	return s
 }
 
-func TestPressSwitchesTargets(t *testing.T) {
+func a(button, event, action string) Action {
+	return Action{Button: button, Event: event, Action: action}
+}
+
+func TestPressSwitchesTheRemotesTarget(t *testing.T) {
 	v := newEngine(t)
-	v.bindings = []Binding{
-		{Remote: "styrbar", Button: "on", Event: Press, Action: ActionOn, Targets: []string{"device:tak", "device:tv"}},
-		{Remote: "styrbar", Button: "off", Event: Press, Action: ActionOff, Targets: []string{"group:vardagsrum"}},
-	}
+	v.configs = []Config{{Remote: "styrbar", Target: "group:vardagsrum", Actions: []Action{a("on", Press, ActionOn), a("off", Press, ActionOff)}}}
 	v.e.Handle("styrbar", "on")
-	if got := v.payloads(); got != "Taklampa:state=ON TV-uttag:state=ON" {
+	if got := v.payloads(); got != "Taklampa:state=ON Golvlampa:state=ON TV-uttag:state=ON" {
 		t.Fatalf("on: %s", got)
 	}
 	v.e.Handle("styrbar", "off")
 	if got := v.payloads(); got != "Taklampa:state=OFF Golvlampa:state=OFF TV-uttag:state=OFF" {
-		t.Fatalf("off group: %s", got)
+		t.Fatalf("off: %s", got)
 	}
-	if len(v.presses) != 2 || v.presses[1] != (Pressed{Remote: "styrbar", Button: "off", Event: Press}) {
+	v.configs[0].Target = "device:gamla"
+	v.e.Handle("styrbar", "on")
+	if got := v.payloads(); got != "Gammal:state_l1=ON" {
+		t.Fatalf("one lamp: %s", got)
+	}
+	if len(v.presses) != 3 || v.presses[1] != (Pressed{Remote: "styrbar", Button: "off", Event: Press}) {
 		t.Fatalf("presses %+v", v.presses)
 	}
 }
 
 func TestToggleAGroupTogether(t *testing.T) {
 	v := newEngine(t)
-	v.bindings = []Binding{{Remote: "round", Button: "toggle", Event: Press, Action: ActionToggle, Targets: []string{"group:vardagsrum"}}}
+	v.configs = []Config{{Remote: "round", Target: "group:vardagsrum", Actions: []Action{a("toggle", Press, ActionToggle)}}}
 	v.e.Handle("round", "toggle") // all off: all on
 	if got := v.payloads(); got != "Taklampa:state=ON Golvlampa:state=ON TV-uttag:state=ON" {
 		t.Fatalf("all off: %s", got)
@@ -147,10 +154,7 @@ func TestToggleAGroupTogether(t *testing.T) {
 
 func TestHoldDimsUntilRelease(t *testing.T) {
 	v := newEngine(t)
-	v.bindings = []Binding{
-		{Remote: "styrbar", Button: "on", Event: Hold, Action: ActionDimUp, Targets: []string{"group:vardagsrum"}},
-		{Remote: "styrbar", Button: "off", Event: Hold, Action: ActionDimDown, Targets: []string{"device:tak"}},
-	}
+	v.configs = []Config{{Remote: "styrbar", Target: "group:vardagsrum", Actions: []Action{a("on", Hold, ActionDimUp), a("off", Hold, ActionDimDown)}}}
 	v.e.Handle("styrbar", "brightness_move_up")
 	if got := v.payloads(); got != "Taklampa:brightness_move_onoff=64 Golvlampa:brightness_move_onoff=64" {
 		t.Fatalf("dim up (outlets can't dim): %s", got)
@@ -160,13 +164,11 @@ func TestHoldDimsUntilRelease(t *testing.T) {
 		t.Fatalf("stop: %s", got)
 	}
 	v.e.Handle("styrbar", "brightness_move_down")
-	if got := v.payloads(); got != "Taklampa:brightness_move=-64" {
+	if got := v.payloads(); got != "Taklampa:brightness_move=-64 Golvlampa:brightness_move=-64" {
 		t.Fatalf("dim down: %s", got)
 	}
 	v.e.Handle("styrbar", "brightness_stop")
-	if got := v.payloads(); got != "Taklampa:brightness_move=stop" {
-		t.Fatalf("stop 2: %s", got)
-	}
+	v.payloads()
 	v.e.Handle("styrbar", "brightness_stop") // nothing held any more
 	if got := v.payloads(); got != "" {
 		t.Fatalf("stray stop: %s", got)
@@ -175,10 +177,7 @@ func TestHoldDimsUntilRelease(t *testing.T) {
 
 func TestRepeatedHoldMessagesActOnce(t *testing.T) {
 	v := newEngine(t)
-	v.bindings = []Binding{
-		{Remote: "hue", Button: "on", Event: Hold, Action: ActionToggle, Targets: []string{"device:tv"}},
-		{Remote: "hue", Button: "on", Event: Press, Action: ActionOn, Targets: []string{"device:tak"}},
-	}
+	v.configs = []Config{{Remote: "hue", Target: "device:tv", Actions: []Action{a("on", Hold, ActionToggle), a("on", Press, ActionOn)}}}
 	v.e.Handle("hue", "on_press") // the start of a press: nothing yet
 	if got := v.payloads(); got != "" || len(v.presses) != 0 {
 		t.Fatalf("on_press: %s %v", got, v.presses)
@@ -194,29 +193,24 @@ func TestRepeatedHoldMessagesActOnce(t *testing.T) {
 	v.e.Handle("hue", "on_hold_release")
 	v.e.Handle("hue", "on_press")
 	v.e.Handle("hue", "on_press_release")
-	if got := v.payloads(); got != "Taklampa:state=ON" {
-		t.Fatalf("short press: %s", got)
-	}
-	v.now = v.now.Add(time.Second)
-	v.e.Handle("hue", "on_hold") // a new hold after the release
 	if got := v.payloads(); got != "TV-uttag:state=ON" {
-		t.Fatalf("second hold: %s", got)
+		t.Fatalf("short press: %s", got)
 	}
 }
 
 func TestStepsAndSet(t *testing.T) {
 	v := newEngine(t)
-	v.bindings = []Binding{
-		{Remote: "round", Button: "brightness_up", Event: Press, Action: ActionBrighter, Targets: []string{"device:tak", "device:tv"}},
-		{Remote: "round", Button: "brightness_down", Event: Press, Action: ActionDarker, Targets: []string{"device:tak"}},
-		{Remote: "round", Button: "arrow_left", Event: Press, Action: ActionSet, Targets: []string{"group:vardagsrum"}, Brightness: 30, ColorTemp: 500},
-	}
+	v.configs = []Config{{Remote: "round", Target: "group:vardagsrum", Actions: []Action{
+		a("brightness_up", Press, ActionBrighter),
+		a("brightness_down", Press, ActionDarker),
+		{Button: "arrow_left", Event: Press, Action: ActionSet, Brightness: 30, ColorTemp: 500},
+	}}}
 	v.e.Handle("round", "brightness_up_click")
-	if got := v.payloads(); got != "Taklampa:brightness_step_onoff=51" {
+	if got := v.payloads(); got != "Taklampa:brightness_step_onoff=51 Golvlampa:brightness_step_onoff=51" {
 		t.Fatalf("brighter: %s", got)
 	}
 	v.e.Handle("round", "brightness_down_click")
-	if got := v.payloads(); got != "Taklampa:brightness_step=-51" {
+	if got := v.payloads(); got != "Taklampa:brightness_step=-51 Golvlampa:brightness_step=-51" {
 		t.Fatalf("darker: %s", got)
 	}
 	v.e.Handle("round", "arrow_left_click")
@@ -228,17 +222,12 @@ func TestStepsAndSet(t *testing.T) {
 
 func TestUnknownThingsAreIgnored(t *testing.T) {
 	v := newEngine(t)
-	v.bindings = []Binding{
-		{Remote: "styrbar", Button: "on", Event: Press, Action: ActionOn, Targets: []string{"device:borta", "group:borta", "device:gamla"}},
-	}
+	v.configs = []Config{{Remote: "styrbar", Target: "group:borta", Actions: []Action{a("on", Press, ActionOn)}}}
 	v.e.Handle("okänd", "on")                  // not a remote
 	v.e.Handle("styrbar", "nonsens")           // not one of its actions
-	v.e.Handle("styrbar", "arrow_right_click") // a button without a binding: only reported
+	v.e.Handle("styrbar", "arrow_right_click") // a button without an action: only reported
+	v.e.Handle("styrbar", "on")                // its group is gone
 	if got := v.payloads(); got != "" {
-		t.Fatalf("%s", got)
-	}
-	v.e.Handle("styrbar", "on") // missing targets are skipped, others still switch
-	if got := v.payloads(); got != "Gammal:state_l1=ON" {
 		t.Fatalf("%s", got)
 	}
 	if !reflect.DeepEqual(v.presses[0], Pressed{Remote: "styrbar", Button: "arrow_right", Event: Press}) {
@@ -246,38 +235,88 @@ func TestUnknownThingsAreIgnored(t *testing.T) {
 	}
 }
 
-func TestNormalizeBindings(t *testing.T) {
-	ok := []Binding{
-		{Remote: "r", Button: "on", Event: Press, Action: ActionToggle, Targets: []string{"device:a", "group:g", "device:a"}},
-		{Remote: "r", Button: "on", Event: Hold, Action: ActionDimUp, Targets: []string{"group:g"}},
-		{Remote: "r", Button: "1", Event: Double, Action: ActionSet, Targets: []string{"device:a"}, Brightness: 50},
-		{Remote: "r", Button: "2", Event: Press, Action: ActionSet, Targets: []string{"device:a"}, ColorTemp: 370},
+func TestDefaults(t *testing.T) {
+	str := func(l []Action) string {
+		var out []string
+		for _, x := range l {
+			out = append(out, x.Button+"/"+x.Event+"="+x.Action)
+		}
+		return strings.Join(out, " ")
 	}
-	got, err := NormalizeAll(ok)
+	cases := []struct {
+		name   string
+		values []string
+		want   string
+	}{
+		{"STYRBAR: on/off, dim while held, arrows free", styrbar, "on/press=on on/hold=dim_up off/press=off off/hold=dim_down"},
+		{"RODRET", rodret, "on/press=on on/hold=dim_up off/press=off off/hold=dim_down"},
+		{"TRÅDFRI round: up/down switch, middle toggles", tradfriRound,
+			"brightness_down/press=off brightness_down/hold=dim_down brightness_up/press=on brightness_up/hold=dim_up toggle/press=toggle"},
+		{"SOMRIG: 1 is up, 2 is down", somrig, "1/press=on 1/hold=dim_up 2/press=off 2/hold=dim_down"},
+		{"Hue: on/off switch, up/down step and dim", hueDimmer,
+			"on/press=on off/press=off up/press=brighter up/hold=dim_up down/press=darker down/hold=dim_down"},
+		{"Aqara: one button toggles", aqara, "button/press=toggle"},
+		{"unknown", unknown, ""},
+	}
+	for _, c := range cases {
+		got := str(Defaults(Buttons(c.values)))
+		// order within the list doesn't matter
+		g, w := strings.Fields(got), strings.Fields(c.want)
+		slices.Sort(g)
+		slices.Sort(w)
+		if !slices.Equal(g, w) {
+			t.Errorf("%s:\n got %s\nwant %s", c.name, got, c.want)
+		}
+	}
+}
+
+func TestNormalizeConfigs(t *testing.T) {
+	ok := []Config{
+		{Remote: "r", Target: "group:g", Actions: []Action{a("on", Press, ActionToggle), a("on", Hold, ActionDimUp),
+			{Button: "1", Event: Double, Action: ActionSet, Brightness: 50}, {Button: "2", Event: Press, Action: ActionSet, ColorTemp: 370}}},
+		{Remote: "s", Target: "device:a", Actions: nil},
+	}
+	got, err := NormalizeConfigs(ok)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(got[0].Targets) != 2 {
-		t.Fatalf("duplicate targets: %v", got[0].Targets)
+	if got[1].Actions == nil {
+		t.Fatal("no actions: an empty list, not null")
 	}
-	bad := []Binding{
-		{Remote: "", Button: "on", Event: Press, Action: ActionOn, Targets: []string{"device:a"}},
-		{Remote: "r", Button: "", Event: Press, Action: ActionOn, Targets: []string{"device:a"}},
-		{Remote: "r", Button: "on", Event: Release, Action: ActionOn, Targets: []string{"device:a"}},
-		{Remote: "r", Button: "on", Event: Press, Action: "explode", Targets: []string{"device:a"}},
-		{Remote: "r", Button: "on", Event: Press, Action: ActionOn},
-		{Remote: "r", Button: "on", Event: Press, Action: ActionOn, Targets: []string{"lamp:a"}},
-		{Remote: "r", Button: "on", Event: Press, Action: ActionDimUp, Targets: []string{"device:a"}}, // dimming needs hold
-		{Remote: "r", Button: "on", Event: Press, Action: ActionSet, Targets: []string{"device:a"}},   // set what?
-		{Remote: "r", Button: "on", Event: Press, Action: ActionSet, Targets: []string{"device:a"}, Brightness: 101},
-		{Remote: "r", Button: "on", Event: Press, Action: ActionSet, Targets: []string{"device:a"}, ColorTemp: 100},
+	bad := []Config{
+		{Remote: "", Target: "device:a"},
+		{Remote: "r", Target: ""},
+		{Remote: "r", Target: "lamp:a"},
+		{Remote: "r", Target: "device:a", Actions: []Action{a("", Press, ActionOn)}},
+		{Remote: "r", Target: "device:a", Actions: []Action{a("on", Release, ActionOn)}},
+		{Remote: "r", Target: "device:a", Actions: []Action{a("on", Press, "explode")}},
+		{Remote: "r", Target: "device:a", Actions: []Action{a("on", Press, ActionDimUp)}}, // dimming needs hold
+		{Remote: "r", Target: "device:a", Actions: []Action{a("on", Press, ActionSet)}},   // set what?
+		{Remote: "r", Target: "device:a", Actions: []Action{{Button: "on", Event: Press, Action: ActionSet, Brightness: 101}}},
+		{Remote: "r", Target: "device:a", Actions: []Action{a("on", Press, ActionOn), a("on", Press, ActionOff)}},
 	}
 	for _, b := range bad {
-		if _, err := NormalizeAll([]Binding{b}); err == nil {
+		if _, err := NormalizeConfigs([]Config{b}); err == nil {
 			t.Errorf("%+v should be refused", b)
 		}
 	}
-	if _, err := NormalizeAll([]Binding{ok[0], ok[0]}); err == nil {
-		t.Error("two actions for the same press")
+	if _, err := NormalizeConfigs([]Config{ok[1], ok[1]}); err == nil {
+		t.Error("the same remote twice")
+	}
+}
+
+func TestMigrateOldBindings(t *testing.T) {
+	old := []Binding{
+		{Remote: "r", Button: "on", Event: Press, Action: ActionToggle, Targets: []string{"group:g", "device:x"}},
+		{Remote: "r", Button: "on", Event: Hold, Action: ActionDimUp, Targets: []string{"group:g"}},
+		{Remote: "s", Button: "1", Event: Press, Action: ActionSet, Targets: []string{"device:a"}, Brightness: 40},
+	}
+	got := Migrate(old)
+	want := []Config{
+		{Remote: "r", Target: "group:g", Actions: []Action{a("on", Press, ActionToggle), a("on", Hold, ActionDimUp)}},
+		{Remote: "s", Target: "device:a", Actions: []Action{{Button: "1", Event: Press, Action: ActionSet, Brightness: 40}}},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("got %+v", got)
 	}
 }

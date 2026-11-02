@@ -224,28 +224,42 @@ TRÅDFRI, RODRET, SOMRIG, Philips Hue dimmer, Aqara buttons and most others)
 switch lights, outlets and groups. The server carries the presses out, so no
 screen needs to be open – and the remote keeps working when no tablet is on.
 
-Every remote paired in zigbee2mqtt is listed with its buttons. For each button
-there is a row per kind of press the remote can report:
+Every remote paired in zigbee2mqtt is listed with its buttons.
 
-- **short press**,
-- **double press** (only on remotes that report it, e.g. SOMRIG or Aqara),
-- **hold** – keeping the button pressed.
+**1. Choose what the remote controls.** Tap **Choose a group or light** and
+pick one **group on the home page** or one **light or outlet**. The buttons
+work from then on. A group follows its card: add a lamp to the group card and
+the remote controls it too. Tap **Controls: …** to change it, or choose
+**Nothing (remote off)** to switch the remote off in the app.
 
-Choose what each one does:
+**2. The buttons are ready to use.** A new remote starts with standard
+buttons:
+
+| Button | Short press | Hold |
+|---|---|---|
+| Up / On (IKEA I, SOMRIG 1, TRÅDFRI up) | Turn on | Dim up while held |
+| Down / Off (IKEA O, SOMRIG 2, TRÅDFRI down) | Turn off | Dim down while held |
+| Hue dimmer: On / Off | Turn on / off | – |
+| Hue dimmer: Up / Down | Brighter / Darker | Dim up / down while held |
+| Middle button (TRÅDFRI), single button (Aqara) | Toggle on/off | – |
+
+Other buttons (e.g. the arrows) do nothing until you choose something.
+
+**3. Change a button if you like.** Each button has a row per kind of press
+the remote reports – **short press**, **double press** (only on remotes that
+report it, e.g. SOMRIG or Aqara) and **hold**. Choose:
 
 | Action | What happens |
 |---|---|
-| **Turn on** / **Turn off** | Switches everything chosen on or off. |
-| **Toggle on/off** | If anything chosen is on, all of it goes off; otherwise all of it goes on – so a group always ends up the same. |
+| **Turn on** / **Turn off** | Switches the group or light on or off. |
+| **Toggle on/off** | If anything in the group is on, all of it goes off; otherwise all of it goes on – so a group always ends up the same. |
 | **Brighter / Darker (one step)** | 20 % brighter or darker per press (Brighter turns lights on). Short and double press only. |
 | **Dim up / down while held** | The lights dim for as long as you hold the button and stop when you let go. Hold only. |
 | **Set light** | Turns on at a chosen **brightness** and/or **colour temperature** (2200–6500 K) – a simple scene. |
+| **Nothing** | The button does nothing. |
 
-When you choose an action, a list opens: tick **groups on the home page**
-and/or single **lights and outlets**, then **Done**. A group follows its
-card: add a lamp to the group card and the remote controls it too. The button
-next to the action shows what it controls; tap it to change. Choose
-**Nothing** to remove an action. Changes are saved at once.
+Changes are saved at once. **Standard buttons** puts all buttons back to the
+table above.
 
 **Which button is which?** Press a button on the remote: the app shows
 *"Last press: Left arrow – hold"* and highlights that button for a few seconds.

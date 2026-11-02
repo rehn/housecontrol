@@ -560,6 +560,9 @@ main.settings-page { max-width: 1100px; }
 .remote-box { display: flex; flex-direction: column; gap: 8px; padding: 14px; border: 1px solid var(--border); border-radius: 14px; }
 .remote-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
 .remote-head h3 { margin: 0; font-size: 1.05rem; }
+.remote-target { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.remote-target .btn { min-height: 48px; }
+.remote-box.unset .remote-button { opacity: 0.75; }
 .remote-last { margin: 0; transition: color 0.3s; }
 .remote-last.fresh { color: var(--accent); font-weight: 600; }
 .remote-button { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--border); transition: border-color 0.2s, box-shadow 0.2s; }
@@ -572,8 +575,6 @@ main.settings-page { max-width: 1100px; }
   border: 1px solid var(--border); background: var(--bg); color: var(--text);
 }
 .remote-row > select { width: 280px; max-width: 100%; }
-.target-btn { min-height: 48px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.target-btn.warn { border-color: var(--warn); }
 .remote-set { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; padding-left: 120px; }
 @media (max-width: 700px) { .remote-set { padding-left: 0; } }
 .remote-set .field input { width: 90px; min-height: 48px; }

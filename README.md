@@ -63,10 +63,11 @@ not run late.
 
 ### Remotes
 
-**Settings → Remotes** maps each button of a zigbee2mqtt remote – per short
-press, double press and hold – to turning lights, outlets or home-page groups
-on/off/toggle, brightness steps, dimming while held (`brightness_move`, stopped
-on release) or a set brightness/colour temperature. Remotes are recognised by
+**Settings → Remotes**: each zigbee2mqtt remote controls one home-page group
+or one light/outlet, and each button – per short press, double press and hold –
+turns it on/off/toggle, steps brightness, dims while held (`brightness_move`,
+stopped on release) or sets a brightness/colour temperature. New remotes get
+standard buttons (up/on: on + dim up, down/off: off + dim down). Remotes are recognised by
 their `action` expose; the action values are decoded generically (IKEA, Hue,
 Aqara naming patterns), so unknown remotes still work for short presses. The
 backend acts on the `action` in the device's state message (retained messages
@@ -245,7 +246,7 @@ or `ws(s)://…`. A missing scheme or port is filled in automatically.
 | `GET /api/dashboard`, `PUT …` | tabs (`kind` `cards` with columns of cards, or `grafana` with a `url`); older single-page layouts are served as one `home` tab |
 | `GET /api/settings/schedules`, `PUT …` | schedules + today's sunrise/sunset + each schedule's next run |
 | `POST /api/settings/backup` | `{"protect":true,"password"}` → all settings as a gzip-compressed, AES-256-GCM encrypted `.hcbackup` file (key: PBKDF2-SHA256, 600 000 rounds); `{"protect":false}` → readable `.json` |
-| `GET/PUT /api/settings/remotes` | remotes with their buttons, and `{"bindings":[{"remote","button","event":"press\|double\|hold","action","targets":["device:<id>","group:<card id>"],"brightness","colorTemp"}]}` |
+| `GET/PUT /api/settings/remotes` | remotes with their buttons and standard actions, and `{"configs":[{"remote","target":"device:<id>\|group:<card id>","actions":[{"button","event":"press\|double\|hold","action","brightness","colorTemp"}]}]}` |
 | `GET/PUT /api/settings/autobackup` | automatic backups: `{"enabled","time":"HH:MM","keep"}` plus folder, encryption, next run, last error and the stored backups |
 | `POST /api/settings/autobackup/run` | make a backup in `BACKUP_DIR` now |
 | `GET /api/settings/autobackup/files/{name}` | download a stored backup |

@@ -197,8 +197,12 @@ func validSnapshot(sn settings.Snapshot) (settings.Snapshot, error) {
 		seen[n.ID] = true
 		sn.Schedules[i] = n
 	}
+	if sn.Remotes == nil && len(sn.LegacyRemotes) > 0 {
+		sn.Remotes = remote.Migrate(sn.LegacyRemotes)
+	}
+	sn.LegacyRemotes = nil
 	if sn.Remotes != nil {
-		r, err := remote.NormalizeAll(sn.Remotes)
+		r, err := remote.NormalizeConfigs(sn.Remotes)
 		if err != nil {
 			return sn, fmt.Errorf("remotes: %w", err)
 		}
