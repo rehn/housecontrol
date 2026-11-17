@@ -45,6 +45,7 @@
     "noDevicesFound": "Inga enheter hittades",
     "group": "Grupp",
     "clock": "Klocka",
+    "week": "Vecka {week}",
     "missingDevice": "Enhet saknas",
     "deviceNotFound": "Enheten hittades inte ({id})",
     "weather": "Väder",
