@@ -95,6 +95,7 @@ describe("Swedish UI", () => {
     vi.setSystemTime(new Date(2026, 9, 28, 22, 16, 7));
     sv(<ClockTile />);
     expect(screen.getByText("onsdag 28 oktober 2026")).toBeTruthy();
+    expect(screen.getByTestId("clock-week").textContent).toBe("Vecka 44");
   });
 
   it("English is the default without a provider", () => {

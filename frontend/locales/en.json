@@ -45,6 +45,7 @@
     "noDevicesFound": "No devices found",
     "group": "Group",
     "clock": "Clock",
+    "week": "Week {week}",
     "missingDevice": "Missing device",
     "deviceNotFound": "Device not found ({id})",
     "weather": "Weather",
